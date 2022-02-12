@@ -2,12 +2,15 @@
 # serverPort = 2600
 # serverSocket = socket(AF_INET, SOCK_DGRAM)
 # serverSocket.bind(('', serverPort))
+host = gethostname()
+ip = gethostbyname(host)
+print("host IP: ",ip)
 # print("The server is ready to receive")
 # while True:
 #     message, clientAddress = serverSocket.recvfrom(2048)
 #     modifiedMessage = message.decode().upper()
 #     serverSocket.sendto(modifiedMessage.encode(), clientAddress)
-
+      print("Client IP: ",clientAddress)
 # Players
 # port = 2600
 # IP = '10.120.70.106'
