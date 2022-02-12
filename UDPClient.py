@@ -1,11 +1,14 @@
 # be able to create a socket 
-from asyncio.windows_events import NULL
 from socket import *
 
-def deregister(clientSocket): 
-    clientSocket.close()
+# serverIP = '10.120.70.106' 
+# serverPort = 2600
+# clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-def main(): 
+def setupServer(): 
+    global serverIP 
+    global serverPort 
+    global clientSocket 
     # Pass either the IP address or the hostname of the server ((do ifconfig to get the IP Address)
     serverIP = '10.120.70.106' 
     serverPort = 2600
@@ -13,89 +16,111 @@ def main():
     # SOCK_DGRAM means UDP
     clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-    # message = input('Input lowercase sentence:') 
-
-    # converts string to byte type and sends to server IP+port
-    # clientSocket.sendto(message.encode(),(serverName, serverPort))
-
-    # recieves message from server and gets server IP 
-    # modifiedMessage, serverAddress = clientSocket.recvfrom(2048)
-
-    # prints message 
-    # print(modifiedMessage.decode())
+def end(): 
+    global serverIP 
+    global serverPort 
+    global clientSocket
+    # END PROGRAM PROMPT
 
     # end = input("End Program (y/n)?")
 
-    while True: 
-        # Sending clientIP and clientPort information to server
-        empty = ""
+    # # deregister(clientSocket)
 
-        # SEND TO SERVER
-        # converts string to byte type and sends to server IP+port
-        # clientSocket.sendto(empty.encode(),(serverIP, serverPort))
+    # while end != "y" and end != "n":
+    #         end = input("Incorrect input. Enter 'y' or 'n' for 'Yes' or 'No'.\nEnd Program (y/n)?")
 
-        # RECEIVE FROM SERVER
-        # recieves message from server and gets server IP 
-        # modifiedMessage, (serverIP, serverPort) = clientSocket.recvfrom(2048)
-        # modifiedMessage = modifiedMessage.decode()
-        # ---------------------------------------------------
-        # OTHER USE
-        # prints message 
-        # print(modifiedMessage)
+    # if end == "y":
+    #     break;
+    # elif end == "n":
+    #     continue;
+    clientSocket.close()
 
-        menu = "Choose from the following: \n"
-        menuItems = "Register Player [1] \nDe-register Player [2] \nQuery Players [3] \nQuery Games [4]\n"
-        menuInput = "Input Menu Choice: "
-        print(menu)
-        print(menuItems)
-        menuChoice = input(menuInput)
+def receiveMessage():
+    global serverIP 
+    global serverPort 
+    global clientSocket
+    # message, clientAddress = serverSocket.recvfrom(2048)
+    message, (serverIP, serverPort) = clientSocket.recvfrom(2048)
+    # convert message from bytes to string and make uppercase 
+    message = message.decode()
+    return message, (serverIP, serverPort)
 
-        # Check
-        valid = True    
-        if not menuChoice.isnumeric(): 
+def sendMessage(message, IP, Port): 
+    global serverIP 
+    global serverPort 
+    global clientSocket
+    if clientSocket:
+        clientSocket.sendto(message.encode(), (IP, Port))
+    else: 
+        print("clientSocket is empty")
+
+def printMenu():
+    menu = "Choose from the following: \n"
+    menuItems = "Register Player [1] \nDe-register Player [2] \nQuery Players [3] \nQuery Games [4]\nEnd Program [5]"
+    menuInput = "Input Menu Choice: "
+    print(menu)
+    print(menuItems)
+    return menuInput
+
+def validMenuChoice(menuChoice):
+    valid = True    
+    if not menuChoice.isnumeric(): 
+        valid = False
+    else:
+        if int(menuChoice) != 1 and int(menuChoice) != 2 and int(menuChoice) != 3 and int(menuChoice) != 4 and int(menuChoice) != 5:
             valid = False
-        else:
-            if int(menuChoice) != 1 and int(menuChoice) != 2 and int(menuChoice) != 3 and int(menuChoice) != 4:
-                valid = False
+    return valid
 
-        while not valid: 
-            print("Input choice was incorrect. Choose in number format\n")
-            print(menu)
-            print(menuItems)
-            menuChoice = input(menuInput)
-            # Check
-            valid = True    
-            if not menuChoice.isnumeric(): 
-                valid = False
-            else:
-                if int(menuChoice) != 1 and int(menuChoice) != 2 and int(menuChoice) != 3 and int(menuChoice) != 4:
-                    valid = False
+def menu():
+        global serverIP 
+        global serverPort 
+        global clientSocket
 
-        # menuChoice = int(menuChoice)
-        clientSocket.sendto(menuChoice.encode(),(serverIP, serverPort)) 
+        menuChoice = input(printMenu())
 
-        choiceFeedback, (serverIP, serverPort) = clientSocket.recvfrom(2048)
-        choiceFeedback = choiceFeedback.decode()
-        if choiceFeedback != "":
-            userInput = input(choiceFeedback)
-            clientSocket.sendto(userInput.encode(),(serverIP, serverPort)) 
+        while not validMenuChoice(menuChoice): 
+            print("\nInput choice was incorrect. Choose in number format.\n")
+            menuChoice = input(printMenu())
+
+        if int(menuChoice) != 5:
+            # Send menu choice to server 
+            sendMessage(menuChoice, serverIP, serverPort) 
+
+            if int(menuChoice) == 1 or int(menuChoice) == 2:
+                # receive message from server about the specific menu choice 
+                serverResponse, (serverIP, serverPort) = receiveMessage()
+                
+                # user reacts to message from server 
+                userInput = input(serverResponse)
+
+                # send user input to server 
+                sendMessage(userInput, serverIP, serverPort)
+
+                print("\n")
+            else: 
+                # gets query messages 
+                serverResponse, (serverIP, serverPort) = receiveMessage()
+                print(serverResponse)
+                print("\n")
             
+        return menuChoice
 
+def main(): 
+    setupServer()
+    
+    global serverIP 
+    global serverPort 
+    global clientSocket 
 
+    while True: 
+        # message = input("Send a message to server: ")
+        # clientSocket.sendto(message.encode(), (serverIP, serverPort))
+        # sendMessage(message, serverIP, serverPort)
 
-        # END PROGRAM PROMPT
+        menuChoice = menu()
+        if int(menuChoice) == 5:
+            break;
 
-        # end = input("End Program (y/n)?")
-
-        # # deregister(clientSocket)
-
-        # while end != "y" and end != "n":
-        #         end = input("Incorrect input. Enter 'y' or 'n' for 'Yes' or 'No'.\nEnd Program (y/n)?")
-
-        # if end == "y":
-        #     break;
-        # elif end == "n":
-        #     continue;
 
 
 if __name__ == "__main__":
