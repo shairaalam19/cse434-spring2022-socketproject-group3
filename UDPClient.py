@@ -1,4 +1,5 @@
 # be able to create a socket 
+from asyncio.windows_events import NULL
 from socket import *
 
 def deregister(clientSocket): 
@@ -78,6 +79,7 @@ def main():
         if choiceFeedback != "":
             userInput = input(choiceFeedback)
             clientSocket.sendto(userInput.encode(),(serverIP, serverPort)) 
+            
 
 
 

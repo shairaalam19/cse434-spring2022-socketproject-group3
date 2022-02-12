@@ -73,6 +73,21 @@ def main():
             name, (clientIP, clientPort) = serverSocket.recvfrom(2048)
             name = name.decode()
             register(name, clientIP, clientPort)
+        if choice == "2":
+            message = "Enter Name: "
+            serverSocket.sendto(message.encode(), (clientIP,clientPort))
+            name, (clientIP, clientPort) = serverSocket.recvfrom(2048)
+            name = name.decode()
+            deregister(name)
+        if choice == "3": 
+            queryPlayers()
+            # send = str(players)
+            # serverSocket.sendto(send.encode(), (clientIP,clientPort))
+        if choice == "4":
+            queryGames()
+            # send = str(games)
+            # serverSocket.sendto(send.encode(), (clientIP,clientPort))
+
         # SEND TO CLIENT
         # sends message back to client 
         # serverSocket.sendto(message.encode(), (clientIP,clientPort))
