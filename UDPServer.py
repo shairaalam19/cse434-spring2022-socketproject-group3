@@ -59,12 +59,23 @@ def main():
     serverSocket.bind(('', serverPort))
     print("The manager (server) is ready to receive")
     while True:
+        # RECEIVE FROM CLIENT
         # gets message from a client 
-        message, clientAddress = serverSocket.recvfrom(2048)
+        # message, clientAddress = serverSocket.recvfrom(2048)
+        choice, (clientIP, clientPort) = serverSocket.recvfrom(2048)
         # convert message from bytes to string and make uppercase 
-        modifiedMessage = message.decode().upper()
+        choice = choice.decode()
+        print("Menu Choice from client: ")
+        print(choice)
+        if choice == "1" : 
+            message = "Enter Name: "
+            serverSocket.sendto(message.encode(), (clientIP,clientPort))
+            name, (clientIP, clientPort) = serverSocket.recvfrom(2048)
+            name = name.decode()
+            register(name, clientIP, clientPort)
+        # SEND TO CLIENT
         # sends message back to client 
-        serverSocket.sendto(modifiedMessage.encode(), clientAddress)
+        # serverSocket.sendto(message.encode(), (clientIP,clientPort))
 
 if __name__ == "__main__":
     main()
