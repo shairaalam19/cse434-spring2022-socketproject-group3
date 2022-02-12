@@ -1,20 +1,4 @@
-# from socket import *
-# serverPort = 2600
-# serverSocket = socket(AF_INET, SOCK_DGRAM)
-# serverSocket.bind(('', serverPort))
-# print("The server is ready to receive")
-# while True:
-#     message, clientAddress = serverSocket.recvfrom(2048)
-#     modifiedMessage = message.decode().upper()
-#     serverSocket.sendto(modifiedMessage.encode(), clientAddress)
-
-# Players
-# port = 2600
-# IP = '10.120.70.106'
-# location = [IP, port]
-# name = 'Tao'
-# player1 = dict({name: location})
-# print(player1)
+from socket import *
 
 # dictionary of dictionaries (players is a dictionary containing a dictionary for every player)
 players = {} 
@@ -29,7 +13,7 @@ games = {}
 # key = gameCount (and then increment so next game can have that identifier)
 # value: list of players with players[0] = dealer 
 
-def register(name, IP, port ):
+def register(name, IP, port):
     print("Inside register()")
     location = [IP, port]
     player = dict({name: location})
@@ -56,20 +40,34 @@ def end(id, user):
     print("\n")
  
 def deregister(name):
+    # What is the unique identifier? 
     print("Inside deregister()")
-    players.pop(name)
+    players.pop(name) 
     print(players)
     print("\n")
 
 def main():
-    register("Tao", "10.120.70.106", 2600)
-    register("Brenda", "10.120.70.106", 2600)
-    queryPlayers()
+    # register("Tao", "100.100.100.100", 2600)
+    # register("Brenda", "100.100.100.100", 2600)
+    # queryPlayers()
+    # deregister("Tao")
     # queryGames()
-    deregister("Tao")
-    deregister("Brenda")
+    # sets port 
+    serverPort = 2600
+    # creat esocket 
+    serverSocket = socket(AF_INET, SOCK_DGRAM)
+    serverSocket.bind(('', serverPort))
+    print("The manager (server) is ready to receive")
+    while True:
+        # gets message from a client 
+        message, clientAddress = serverSocket.recvfrom(2048)
+        # convert message from bytes to string and make uppercase 
+        modifiedMessage = message.decode().upper()
+        # sends message back to client 
+        serverSocket.sendto(modifiedMessage.encode(), clientAddress)
 
 if __name__ == "__main__":
     main()
+
 
     
