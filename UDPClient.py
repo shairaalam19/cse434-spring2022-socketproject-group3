@@ -5,7 +5,10 @@ from socket import *
 # serverPort = 2600
 # clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-def setupServer(): 
+registered = False
+regName = ""
+
+def setupClient(): 
     global serverIP 
     global serverPort 
     global clientSocket 
@@ -75,6 +78,8 @@ def menu():
         global serverIP 
         global serverPort 
         global clientSocket
+        global registered
+        global regName
 
         menuChoice = input(printMenu())
 
@@ -86,6 +91,7 @@ def menu():
             # Send menu choice to server 
             sendMessage(menuChoice, serverIP, serverPort) 
 
+            # Just registers or deregisters, so it expects a response from the server and then sends message 
             if int(menuChoice) == 1 or int(menuChoice) == 2:
                 # receive message from server about the specific menu choice 
                 serverResponse, (serverIP, serverPort) = receiveMessage()
@@ -97,6 +103,7 @@ def menu():
                 sendMessage(userInput, serverIP, serverPort)
 
                 print("\n")
+            # Just querying, only expects response from server 
             else: 
                 # gets query messages 
                 serverResponse, (serverIP, serverPort) = receiveMessage()
@@ -106,7 +113,7 @@ def menu():
         return menuChoice
 
 def main(): 
-    setupServer()
+    setupClient()
     
     global serverIP 
     global serverPort 

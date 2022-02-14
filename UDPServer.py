@@ -1,3 +1,4 @@
+import socket
 from socket import *
 import json
 
@@ -51,7 +52,7 @@ def sendMessage(message, IP, Port):
     global serverPort
     global serverSocket
     if serverSocket:
-            serverSocket.sendto(message.encode(), (IP, Port))
+        serverSocket.sendto(message.encode(), (IP, Port))
     else: 
         print("serverSocket is empty")
 
@@ -129,9 +130,15 @@ def menu(choice, clientIP, clientPort):
         sendMessage(queryGames(), clientIP, clientPort)
 
 def main():    
-    # setupServer()
+    setupServer()
 
-    print("The manager (server) is ready to receive")
+    global serverSocket
+
+    # print("The manager (server) is ready to receive")
+    # print("Manager IP Address: ")
+    # hostname = serverSocket.gethostname()
+    # ip_address = serverSocket.gethostbyname(hostname)
+    # print(ip_address)
 
     while True:
         # message, (clientIP, clientPort) = serverSocket.recvfrom(2048)
