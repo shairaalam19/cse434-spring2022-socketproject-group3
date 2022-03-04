@@ -1,4 +1,5 @@
 from http import client
+import random
 from socket import *
 import json
 
@@ -7,6 +8,7 @@ playerNames = [] # just player names
 gameCounter = 0
 games = {}
 playersInfo = {} # all info
+availToPlay = {} # players that are NOT in a game 
 
 # sets up the server socket 
 def setupServer():
@@ -35,6 +37,11 @@ def sendMsg(message,IP,Port):
 
 def register(player_name, clientIP, player_port): 
 	global playerPorts
+	global availToPlay
+	global playersInfo
+	global playerNames
+	global playerPorts
+	
 	registered = False
 	if (player_name not in playerNames) and (player_port not in playerPorts):
 		playerNames.append(player_name) # updating player names 
@@ -44,17 +51,50 @@ def register(player_name, clientIP, player_port):
 		info = [clientIP, player_port]
 		new_player = dict({player_name:info})
 		playersInfo.update(new_player)
-		
+		availToPlay.update(new_player)
+
 		registered = True
 		print(player_name + " is registered")
 		
 	return registered;
 
+def start(dealer, k): 
+	global newGame
+	global playerNames
+	global availToPlay
+
+	reply = ''
+	if dealer not in playerNames: 
+		reply = 'FAILURE'
+	elif k <= 0 or k >= 4:
+		reply = 'FAILURE'
+	elif len(playerNames) < k:
+		reply = 'FAILURE'
+	else: 
+		# new game 
+		newGame = []	
+		# setting index 0 as dealer 
+		dealerInfo = availToPlay.pop(dealer)
+		newGame.append(dealerInfo) 
+		for i in range(1, k+1):
+			# get new player info 
+			newName, [newIP, newPort] = random.choice(list(availToPlay.items()))
+			newPlayer = newName, [newIP, newPort] 
+			
+			newGame.append(newPlayer) # add to array of game 
+			availToPlay.pop(newName) # remove new player from availToPlay
+		games.update(newGame) # add to games 
+		reply = 'SUCCESSFUL'
+
+	return reply
 
 # takes in the command that client chose and determines outputs based on that 
 def clientCmd(message,clientIP,clientPort):
 	global serverPort
 	global serverSocket
+	global playerNames
+	global games
+
 	cmd_list = message.split( )
 	action = cmd_list[0]
 
@@ -70,44 +110,14 @@ def clientCmd(message,clientIP,clientPort):
 		print(playerPorts)
 
 		reply = ''
-		count = 0
-
-		# Update the array of players 
-		# if (player_name not in playerNames) and (player_port not in playerPorts):
-		# 	playerNames.append(player_name)
-		# 	#count += 1
-		# 	#if player_port not in playerPorts:
-		# 	playerPorts.append(player_port)
-		# 	count += 1
 		registered = register(player_name, clientIP, player_port)
 		
-		# responds to the clients 
-		# if count == 1:
-		# 	info = [clientIP, player_port]
-		# 	new_player = dict({player_name:info})
-		# 	playersInfo.update(new_player)
-		# 	reply = 'SUCCESSFUL'
-		# 	# CHANGED
-		# 	# sendMsg(reply, clientIP, clientPort) 
-		# 	serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-		# else:
-		# 	reply = 'FAILURE'
-		# 	# CHANGED
-		# 	# sendMsg(reply, clientIP, clientPort) 
-		# 	serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		if registered is True:
-			# info = [clientIP, player_port]
-			# new_player = dict({player_name:info})
-			# playersInfo.update(new_player)
 			reply = 'SUCCESSFUL'
-			# CHANGED
-			# sendMsg(reply, clientIP, clientPort) 
 			print(reply)
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		else:
 			reply = 'FAILURE'
-			# CHANGED
-			# sendMsg(reply, clientIP, clientPort) 
 			print(reply)
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
@@ -119,14 +129,26 @@ def clientCmd(message,clientIP,clientPort):
 	if action == 'query':
 		if cmd_list[1] == 'games':
 			reply = '0' 
-			# CHANGED
-			# sendMsg(reply, clientIP, clientPort)
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		if cmd_list[1] == 'players':
 			reply = json.dumps(playersInfo)
-			# CHANGED
-			# sendMsg(reply, clientIP, clientPort)
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
+	
+	if action == 'start':
+		dealer = cmd_list[2]
+		k = cmd_list[3]
+		reply = ''
+
+		if k.isnumeric(): 
+			k = int(k)
+			reply = start(dealer, k)
+		else: 
+			reply = 'FAILURE'
+
+		# return message 
+		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
+		
+			
 
 	if action == 'de-register':
 		name = cmd_list[1]
@@ -135,8 +157,6 @@ def clientCmd(message,clientIP,clientPort):
 			reply = 'SUCCESSFUL'
 		else: 
 			reply = 'FAILURE'
-		# CHANGED
-		# sendMsg(reply, clientIP, clientPort)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 		#print('All player ports:',playerPorts)
@@ -144,8 +164,6 @@ def clientCmd(message,clientIP,clientPort):
 		print('After de-register:', playersInfo)
 		# del playersInfo[name]
 		# playerNames.remove(name)
-
-				
 
 def main():
 	setupServer()

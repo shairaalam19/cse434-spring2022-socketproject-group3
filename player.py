@@ -15,7 +15,7 @@ def setupServer():
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
-    menuItems = "register <user> <IPv4-address> <port> \nderegister <user> \nquery players \nquery games \n"
+    menuItems = "register <user> <IPv4-address> <port> \nquery players \n start game <user> <k> \nquery games \n end <game-identifier> <>\nde-register <user> \n"
     return menu + menuItems
 
 def commandClient():
@@ -66,6 +66,12 @@ def commandClient():
     
     if action == 'query':
         sendMsg(commandChoice,serverIP,serverPort)
+        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+        reply_de = reply.decode()
+        print(reply_de)
+    
+    if action == 'start': 
+        sendMsg(commandChoice,serverIP, serverPort)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply_de = reply.decode()
         print(reply_de)
