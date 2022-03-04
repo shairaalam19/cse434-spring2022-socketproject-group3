@@ -2,6 +2,7 @@ from http import client, server
 from socket import *
 
 playerName = ''
+cards = {}
 
 def setupServer():
     global serverIP
@@ -17,6 +18,43 @@ def printMenu():
     menu = "Enter one of the following commands: \n"
     menuItems = "register <user> <IPv4-address> <port> \nquery players \n start game <user> <k> \nquery games \n end <game-identifier> <>\nde-register <user> \n"
     return menu + menuItems
+
+def cardValue(card): 
+    cardValue = {
+        "A" : 1, 
+        "2" : -2,
+        "3" : 3,
+        "4" : 4,
+        "5" : 5,
+        "6" : 6,
+        "7" : 7,
+        "8" : 8,
+        "9" : 9,
+        "10" : 10,
+        "J" : 10,
+        "Q" : 10,
+        "K" : 0
+    }
+    # cardValue = {
+    #     "A" : 1, 
+    #     2 : -2,
+    #     3 : 3,
+    #     4 : 4,
+    #     5 : 5,
+    #     6 : 6,
+    #     7 : 7,
+    #     8 : 8,
+    #     9 : 9,
+    #     10 : 10,
+    #     "J" : 10,
+    #     "Q" : 10,
+    #     "K" : 0
+    # }
+    return cardValue.get(card, "FAILURE")
+
+def gameScore(): 
+
+    return total
 
 def commandClient():
     global serverIP
