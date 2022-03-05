@@ -58,6 +58,11 @@ def playerScore(cards):
         total += 0
     return total
 
+def swap(cards, oldIndex, new): 
+    oldCard = cards.pop(oldIndex)
+    cards.insert(oldIndex, new)
+    return cards, oldCard
+
 def commandClient():
     global serverIP
     global serverPort
