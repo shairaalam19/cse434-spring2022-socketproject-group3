@@ -4,6 +4,7 @@ from socket import *
 import json
 from collections import namedtuple
 import random
+from copy import deepcopy
 
 playerPorts = [] # just player ports 
 playerNames = [] # just player names 
@@ -38,42 +39,6 @@ def sendMsg(message,IP,Port):
 	if serverSocket:
 		serverSocket.sendto(message.encode(),(IP,Port))
 
-def createDeck(): 
-	global deck
-	Card = namedtuple('Card', ['value', 'suit'])
-	suits = ["D", "C", "H", "S"]
-	values = ["A", 2, 3, 4, 5, 6, 7, 8, 9, 10, "J", "Q", "K"]
-	deck = [Card(value, suit) for value in values for suit in suits]
-	# to print: 
-	# print(deck[0].value, deck[0].suit)
-	return deck 
-
-# Can print any cards in set (can print players cards or all cards -> depends on tuples )
-def printCards(cards):
-	for i in range (0,len(cards)): 
-		print(cards[i].value, cards[i].suit)
-
-def shuffleCards(k): 
-	global deck 
-	cardIndex = ''
-	card = ''
-	stock = deck.copy()
-	# deck for the specific game 
-	game = [] 
-	# gets random 6 cards for EACH player 
-	for i in range (0, k+1):
-		playerCards = []
-		# gets 6 random cards for ONE player 
-		for i in range (0, 6):
-			cardIndex = random.randint(0, len(game))
-			card = stock.pop(cardIndex)
-			playerCards.append(card)
-		# stores the set of 6 cards in te 
-		game.append(playerCards)
-    
-	# returns game deck and stock deck 
-	return game, stock 
-
 def register(player_name, clientIP, player_port): 
 	global playerPorts
 	global availToPlay
@@ -97,10 +62,65 @@ def register(player_name, clientIP, player_port):
 		
 	return registered;
 
+def createDeck(): 
+	global deck
+	Card = namedtuple('Card', ['value', 'suit'])
+	suits = ["D", "C", "H", "S"]
+	values = ["A", 2, 3, 4, 5, 6, 7, 8, 9, 10, "J", "Q", "K"]
+	deck = [Card(value, suit) for value in values for suit in suits]
+	# to print: 
+	# print(deck[0].value, deck[0].suit)
+	return deck 
+
+# Can print any cards in set (can print players cards or all cards -> depends on tuples )
+def printCards(cards):
+	for i in range (0,len(cards)): 
+		print(cards[i].value, cards[i].suit)
+
+def assignCards(game): 
+	global deck 
+	
+	# gets all the players' names in the game 
+	keys = list(game) 
+
+	# gets all the values of the players in the game  
+	values = list(game.values())
+
+	# gamedeck 
+	stock = deepcopy(deck) 
+
+	# gets random 6 cards for EACH player between the first player and the last player 
+	for i in range (0, len(game)):
+		# get name of player 
+		key = keys[i]
+		# get key of player 
+		value = values[i]
+		# get returned stock with remaining cards in deck 
+		stock, playerCards = randomCards(stock)
+
+		# updated game dictionary to also add the cards that each player has 
+		value.append(playerCards)
+		player = dict({key:value})
+		game.update(player)
+
+	print("Game details: ", json.dumps(game))
+	# returns game info and stock deck 
+	return game, stock
+
+def randomCards(stock): 
+	playerCards = []
+	# gets 6 random cards for ONE player 
+	for i in range (0, 6):
+		cardIndex = random.randint(0, len(stock))
+		card = stock.pop(cardIndex)
+		playerCards.append(card)
+	return stock, playerCards 
+
 def start(dealer, k): 
 	global playerNames
 	global availToPlay
 	global playersInfo
+	global deck
 
 	reply = ''
 	if dealer not in playerNames: 
@@ -139,12 +159,22 @@ def start(dealer, k):
 		# 		player: playerInfo
 		# 	}
 		# }
-		gameIdentifier = len(games) + 1
+		
+		# setting a game identifier
+		gameIdentifier = 0
+		while gameIdentifier in games: 
+			gameIdentifier = gameIdentifier + 1
+
+		# updating ALL the games 
 		games.update({gameIdentifier : newGame}) # add to games 
 
-		print("Current available players: ", json.dumps(availToPlay))
-		print("Current games: ", json.dumps(games))
+		# print("Current available players: ", json.dumps(availToPlay))
+		# print("Current games: ", json.dumps(games))
 		# print("Current game: ", json.dumps(newGame))
+		# print("Current deck: ", json.dumps(deck))
+
+		assignCards(newGame)
+
 		reply = 'SUCCESSFUL'
 
 	return reply

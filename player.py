@@ -20,36 +20,36 @@ def printMenu():
     return menu + menuItems
 
 def cardValue(card): 
-    cardValue = {
-        "A" : 1, 
-        "2" : -2,
-        "3" : 3,
-        "4" : 4,
-        "5" : 5,
-        "6" : 6,
-        "7" : 7,
-        "8" : 8,
-        "9" : 9,
-        "10" : 10,
-        "J" : 10,
-        "Q" : 10,
-        "K" : 0
-    }
     # cardValue = {
     #     "A" : 1, 
-    #     2 : -2,
-    #     3 : 3,
-    #     4 : 4,
-    #     5 : 5,
-    #     6 : 6,
-    #     7 : 7,
-    #     8 : 8,
-    #     9 : 9,
-    #     10 : 10,
+    #     "2" : -2,
+    #     "3" : 3,
+    #     "4" : 4,
+    #     "5" : 5,
+    #     "6" : 6,
+    #     "7" : 7,
+    #     "8" : 8,
+    #     "9" : 9,
+    #     "10" : 10,
     #     "J" : 10,
     #     "Q" : 10,
     #     "K" : 0
     # }
+    cardValue = {
+        "A" : 1, 
+        2 : -2,
+        3 : 3,
+        4 : 4,
+        5 : 5,
+        6 : 6,
+        7 : 7,
+        8 : 8,
+        9 : 9,
+        10 : 10,
+        "J" : 10,
+        "Q" : 10,
+        "K" : 0
+    }
     return cardValue.get(card, "FAILURE")
 
 def playerScore(cards): 
@@ -70,7 +70,8 @@ def commandClient():
 
     # Print menu for player 
     commandPrompt = printMenu()
-    #commandChoice = input("Enter Command: ") #command to sent to sever
+
+    # WAITING HERE UNTIL USER RESPONSE 
     commandChoice = input(commandPrompt) #command to sent to sever
 
     # splits user inputs into array
