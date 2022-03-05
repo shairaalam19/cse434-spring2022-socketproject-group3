@@ -3,3 +3,5 @@ register Shaira 1.1.1.1 1
 register Alyssa 1.1.1.1 2
 
 start game Shaira 1 
+
+end 1 Shaira

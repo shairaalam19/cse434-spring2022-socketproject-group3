@@ -16,7 +16,7 @@ def setupServer():
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
-    menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <>\nde-register <user> \n\n"
+    menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <user>\nde-register <user> \n\n"
     return menu + menuItems
 
 def cardValue(card): 
@@ -122,7 +122,10 @@ def commandClient():
             commandClient()
 
     if action == 'end':
-        print('end \n')
+        sendMsg(commandChoice, serverIP, serverPort)
+        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+        reply_de = reply.decode()
+        print(reply_de , '\n')
 
     if action == 'de-register':
         sendMsg(commandChoice,serverIP,serverPort)

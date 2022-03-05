@@ -15,6 +15,23 @@ games = {}
 playersInfo = {} # all info
 availToPlay = {} # players that are NOT in a game 
 deck = {}
+printCardValue = {
+	"A" : " A", 
+	2 : " 2",
+	3 : " 3",
+	4 : " 4",
+	5 : " 5",
+	6 : " 6",
+	7 : " 7",
+	8 : " 8",
+	9 : " 9",
+	10 : "10",
+	"J" : " J",
+	"Q" : " Q",
+	"K" : " K"
+}
+
+# SOCKET FUNCTION 
 
 # sets up the server socket 
 def setupServer():
@@ -64,6 +81,8 @@ def register(player_name, clientIP, player_port):
 		
 	return registered;
 
+# CARD FUNCTIONS
+
 def createDeck(): 
 	global deck
 	Card = namedtuple('Card', ['value', 'suit'])
@@ -76,21 +95,6 @@ def createDeck():
 
 # Can print any cards in set (can print players cards or all cards -> depends on tuples )
 def printPlayerCards(cards, show):
-	printCardValue = {
-        "A" : " A", 
-        2 : " 2",
-        3 : " 3",
-        4 : " 4",
-        5 : " 5",
-        6 : " 6",
-        7 : " 7",
-        8 : " 8",
-        9 : " 9",
-        10 : "10",
-        "J" : " J",
-        "Q" : " Q",
-        "K" : " K"
-    }
 	printable = ""
 	count = 0
 	for i in range (0, int(floor(len(cards)/2)) ): 
@@ -156,6 +160,8 @@ def randomCard(stock):
 	card = stock.pop(cardIndex)
 	return stock, card
 
+# GAME FUNCTIONS
+
 def start(dealer, k): 
 	global playerNames
 	global availToPlay
@@ -201,7 +207,7 @@ def start(dealer, k):
 		# }
 		
 		# setting a game identifier
-		gameIdentifier = 0
+		gameIdentifier = 1
 		while gameIdentifier in games: 
 			gameIdentifier = gameIdentifier + 1
 
@@ -217,6 +223,39 @@ def start(dealer, k):
 
 		reply = 'SUCCESSFUL'
 
+	return reply
+
+def end(gameIdentInput, dealer):
+	global games
+	reply = ''
+	endedGame = {}
+	
+	if gameIdentInput.isnumeric():
+		gameIdentifier = int(gameIdentInput)
+		if gameIdentifier in games:
+			game = games.get(gameIdentifier)
+			playersName = list(game)
+			gameDealer = playersName[0]
+			if dealer != gameDealer:
+				reply = 'FAILURE. dealer is not correct.'
+				print(dealer)
+			else : 
+				endedGame = games.pop(gameIdentifier)
+				playersInfo = list(endedGame.values())
+				for i in range(0, len(playersInfo)): 
+					# get IP and port of each player and store back in availToPlay 
+					ip = playersInfo[i][0]
+					port = playersInfo[i][1]
+					name = playersName[i]
+					info = [ip, port]
+					player = dict({name:info})
+					availToPlay.update(player)
+				reply = 'SUCCESSFUL'
+				# print("Updated availToPlay: ", json.dumps(availToPlay))
+	else: 
+		reply = 'FAILURE. gameIdentifier does not exist.'
+		print(json.dumps(games))
+	
 	return reply
 
 # takes in the command that client chose and determines outputs based on that 
@@ -279,7 +318,13 @@ def clientCmd(message,clientIP,clientPort):
 		# return message 
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		
-			
+	if action == 'end': 
+		gameIdentifier = cmd_list[1]
+		dealer = cmd_list[2]	
+		reply = end(gameIdentifier, dealer)
+
+		# return message 
+		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 	if action == 'de-register':
 		name = cmd_list[1]
