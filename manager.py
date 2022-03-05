@@ -20,7 +20,7 @@ def setupServer():
 	serverPort = 2600
 	serverSocket = socket(AF_INET,SOCK_DGRAM)
 	serverSocket.bind(('',serverPort))
-	print("The manager is ready to receive...")
+	print("The manager is ready to receive... \n")
 
 # returns the decoded message and client's IP and port 
 def receiveMsg():
@@ -50,7 +50,7 @@ def createDeck():
 
 # Can print any cards in set (can print players cards or all cards -> depends on tuples )
 def printCards(cards):
-	for i in range (0,51): 
+	for i in range (0,len(cards)): 
 		print(cards[i].value, cards[i].suit)
 
 def shuffleCards(k): 
@@ -93,36 +93,58 @@ def register(player_name, clientIP, player_port):
 		availToPlay.update(new_player)
 
 		registered = True
-		print(player_name + " is registered")
+		print(player_name + " is registered \n")
 		
 	return registered;
 
 def start(dealer, k): 
-	global newGame
 	global playerNames
 	global availToPlay
+	global playersInfo
 
 	reply = ''
 	if dealer not in playerNames: 
 		reply = 'FAILURE'
-	elif k <= 0 or k >= 4:
+	# 1 <= k <= 3 
+	elif k < 1 or k > 3:
 		reply = 'FAILURE'
-	elif len(playerNames) < k:
+	elif len(availToPlay) < k+1:
 		reply = 'FAILURE'
 	else: 
 		# new game 
-		newGame = []	
+		newGame = {}	
+
 		# setting index 0 as dealer 
+		# Take out dealer from available players list 
 		dealerInfo = availToPlay.pop(dealer)
-		newGame.append(dealerInfo) 
-		for i in range(1, k+1):
+		# store in array for game 
+		newGame.update(dict({dealer:dealerInfo}))
+
+		# get random players   
+		for i in range(1, k+1): # gets at least 1 other player up until max 4 
 			# get new player info 
-			newName, [newIP, newPort] = random.choice(list(availToPlay.items()))
-			newPlayer = newName, [newIP, newPort] 
-			
-			newGame.append(newPlayer) # add to array of game 
-			availToPlay.pop(newName) # remove new player from availToPlay
-		games.update(newGame) # add to games 
+			newPlayerName = random.choice(list(availToPlay))
+			newPlayerInfo = availToPlay.pop(newPlayerName)
+			newPlayer = dict({newPlayerName:newPlayerInfo})
+			newGame.update(newPlayer) # add to dict of newGame
+
+		# ex) 
+		# games = {
+		# 	1: {
+		# 		player: playerInfo,
+		# 		player: playerInfo
+		# 	},
+		# 	2: {
+		# 		player: playerInfo,
+		# 		player: playerInfo
+		# 	}
+		# }
+		gameIdentifier = len(games) + 1
+		games.update({gameIdentifier : newGame}) # add to games 
+
+		print("Current available players: ", json.dumps(availToPlay))
+		print("Current games: ", json.dumps(games))
+		# print("Current game: ", json.dumps(newGame))
 		reply = 'SUCCESSFUL'
 
 	return reply
@@ -145,29 +167,29 @@ def clientCmd(message,clientIP,clientPort):
 		player_port = int(cmd_list[3]) # fourth argument in message received
 		player_name = (cmd_list[1]) # name is second argument
 
-		print('player port is: ', player_port)
-		print(playerPorts)
+		print('player port is: ', player_port, '\n')
+		print(playerPorts, '\n')
 
 		reply = ''
 		registered = register(player_name, clientIP, player_port)
 		
 		if registered is True:
 			reply = 'SUCCESSFUL'
-			print(reply)
+			print(reply, '\n')
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		else:
 			reply = 'FAILURE'
-			print(reply)
+			print(reply, '\n')
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 		# Printing players info 
 		#print('All player ports:',playerPorts)
 		#print('All player names:',playerNames)
-		print('All players info:', playersInfo)
+		print('All players info:', playersInfo, '\n')
 
 	if action == 'query':
 		if cmd_list[1] == 'games':
-			reply = '0' 
+			reply = json.dumps(games) 
 			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 		if cmd_list[1] == 'players':
 			reply = json.dumps(playersInfo)
@@ -200,7 +222,7 @@ def clientCmd(message,clientIP,clientPort):
 
 		#print('All player ports:',playerPorts)
 		#print('All player names:',playerNames)
-		print('After de-register:', playersInfo)
+		print('After de-register:', playersInfo, '\n')
 		# del playersInfo[name]
 		# playerNames.remove(name)
 

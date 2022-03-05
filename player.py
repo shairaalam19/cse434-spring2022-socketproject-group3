@@ -16,7 +16,7 @@ def setupServer():
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
-    menuItems = "register <user> <IPv4-address> <port> \nquery players \n start game <user> <k> \nquery games \n end <game-identifier> <>\nde-register <user> \n"
+    menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <>\nde-register <user> \n\n"
     return menu + menuItems
 
 def cardValue(card): 
@@ -52,8 +52,10 @@ def cardValue(card):
     # }
     return cardValue.get(card, "FAILURE")
 
-def gameScore(): 
-
+def playerScore(cards): 
+    total = 0
+    for i in cards: 
+        total += 0
     return total
 
 def commandClient():
@@ -81,7 +83,6 @@ def commandClient():
     # Specific to command action 
     if action == 'register': 
         if playerName == '':
-            playerName = cmdChoice_list[1]
             sendMsg(commandChoice,serverIP,serverPort)
             # clientSocket.sendto(commandChoice.encode(),(serverIP,serverPort))
             #reply = receiveMsg()
@@ -91,13 +92,14 @@ def commandClient():
             reply_de = reply.decode()
             # print(reply_de)
             if reply_de == 'SUCCESSFUL':
-                print('SUCCESSFUL')
+                print('SUCCESSFUL \n')
+                playerName = cmdChoice_list[1]
                 # return reply
             elif reply_de == 'FAILURE': 
                 print('FAILURE')
                 commandClient()
             elif reply_de == '':
-                print('NO REPLY')
+                print('NO REPLY \n')
         else: 
             print('FAILURE. No player name.')
             commandClient()
@@ -106,21 +108,28 @@ def commandClient():
         sendMsg(commandChoice,serverIP,serverPort)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply_de = reply.decode()
-        print(reply_de)
+        print(reply_de, '\n')
     
-    if action == 'start': 
-        sendMsg(commandChoice,serverIP, serverPort)
-        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-        reply_de = reply.decode()
-        print(reply_de)
-    
+    if action == 'start':
+        if cmdChoice_list[1] == 'game':
+            sendMsg(commandChoice, serverIP, serverPort)
+            reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+            reply_de = reply.decode()
+            print(reply_de , '\n')
+        else: 
+            print('FAILURE. Command not correct.')
+            commandClient()
+
+    if action == 'end':
+        print('end \n')
+
     if action == 'de-register':
         sendMsg(commandChoice,serverIP,serverPort)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply_de = reply.decode()
 
         if reply_de == 'SUCCESSFUL':
-            print(reply_de)
+            print(reply_de, '\n')
             playerName = ''
             # closes client 
             return reply_de 
@@ -129,7 +138,7 @@ def commandClient():
             print('FAILURE')
             commandClient()
         elif reply == '':
-            print('NO REPLY')
+            print('NO REPLY \n')
             
 
 def sendMsg(message, IP, Port):
