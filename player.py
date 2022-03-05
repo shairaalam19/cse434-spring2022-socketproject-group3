@@ -1,25 +1,17 @@
 from http import client, server
 from socket import *
+from http import client
+import random
+from socket import *
+import json
+from collections import namedtuple
+import random
+from copy import deepcopy
+from math import ceil
+from math import floor
 
 playerName = ''
 cards = {}
-
-def setupServer():
-    global serverIP
-    global serverPort
-    global clientSocket
-    serverIP = '10.120.70.106' 
-    serverPort = 2600
-    clientSocket = socket(AF_INET, SOCK_DGRAM)
-    #if clientSocket:
-        #print('connected')
-
-def printMenu():
-    menu = "Enter one of the following commands: \n"
-    menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <user>\nde-register <user> \n\n"
-    return menu + menuItems
-
-def cardValue(card): 
     # cardValue = {
     #     "A" : 1, 
     #     "2" : -2,
@@ -35,6 +27,67 @@ def cardValue(card):
     #     "Q" : 10,
     #     "K" : 0
     # }
+
+def setupServer():
+    global serverIP
+    global serverPort
+    global clientSocket
+    serverIP = '10.120.70.106' 
+    serverPort = 2700
+    clientSocket = socket(AF_INET, SOCK_DGRAM)
+    #if clientSocket:
+        #print('connected')
+
+def printMenu():
+    menu = "Enter one of the following commands: \n"
+    menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <user>\nde-register <user> \n\n"
+    return menu + menuItems
+
+def printCardValue(card): 
+    cardPrint = {
+		"A" : " A", 
+		2 : " 2",
+		3 : " 3",
+		4 : " 4",
+		5 : " 5",
+		6 : " 6",
+		7 : " 7",
+		8 : " 8",
+		9 : " 9",
+		10 : "10",
+		"J" : " J",
+		"Q" : " Q",
+		"K" : " K"
+	}
+    return cardPrint.get(card, False)
+
+# Can print any cards in set (can print players cards or all cards -> depends on tuples )
+def printPlayerCards(cards, show):
+	printable = ""
+	count = 0
+	# first row 
+	for i in range (0, int(floor(len(cards)/2)) ): 
+		if count < show:
+			card = cards[i].value
+			value = printCardValue(card)
+			printable += value + cards[i].suit + " "
+		else: 
+			printable += "*** "
+		count += 1
+	printable += "\n"
+	# 2nd row 
+	for i in range (int(ceil(len(cards)/2)), len(cards)): 
+		if count < show:
+			card = cards[i].value
+			value = printCardValue(card)
+			printable += value + cards[i].suit + " "
+		else: 
+			printable += "*** "
+		count += 1
+	printable += "\n"
+	return printable
+
+def cardValue(card): 
     cardValue = {
         "A" : 1, 
         2 : -2,
@@ -50,12 +103,24 @@ def cardValue(card):
         "Q" : 10,
         "K" : 0
     }
-    return cardValue.get(card, "FAILURE")
+    return cardValue.get(card, False)
 
-def playerScore(cards): 
+def totalScore(cards): 
     total = 0
-    for i in cards: 
-        total += 0
+    for i in range (0, len(cards)): 
+        card = cards[i].value
+        value = cardValue(card)
+        if value != False:
+            total += value
+    return total
+
+def partialScore(cards, show):
+    total = 0
+    for i in range (0, show): 
+        card = cards[i].value 
+        value = cardValue(card)
+        if value != False:
+            total += value
     return total
 
 def swap(cards, oldIndex, new): 
@@ -142,9 +207,8 @@ def commandClient():
             playerName = ''
             # closes client 
             return reply_de 
-        # ADDED
-        elif reply == 'FAILURE': 
-            print('FAILURE')
+        elif reply_de == 'FAILURE': 
+            print(reply_de, '\n')
             commandClient()
         elif reply == '':
             print('NO REPLY \n')
