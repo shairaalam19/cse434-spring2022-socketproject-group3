@@ -5,6 +5,8 @@ import json
 from collections import namedtuple
 import random
 from copy import deepcopy
+from math import ceil
+from math import floor
 
 playerPorts = [] # just player ports 
 playerNames = [] # just player names 
@@ -73,9 +75,40 @@ def createDeck():
 	return deck 
 
 # Can print any cards in set (can print players cards or all cards -> depends on tuples )
-def printCards(cards):
-	for i in range (0,len(cards)): 
-		print(cards[i].value, cards[i].suit)
+def printPlayerCards(cards, show):
+	printCardValue = {
+        "A" : " A", 
+        2 : " 2",
+        3 : " 3",
+        4 : " 4",
+        5 : " 5",
+        6 : " 6",
+        7 : " 7",
+        8 : " 8",
+        9 : " 9",
+        10 : "10",
+        "J" : " J",
+        "Q" : " Q",
+        "K" : " K"
+    }
+	printable = ""
+	count = 0
+	for i in range (0, int(floor(len(cards)/2)) ): 
+		if count < show:
+			value = printCardValue.get(cards[i].value)
+			printable += value + cards[i].suit + " "
+		else: 
+			printable += "*** "
+		count += 1
+	printable += "\n"
+	for i in range (int(ceil(len(cards)/2)), len(cards)): 
+		if count < show:
+			value = printCardValue.get(cards[i].value)
+			printable += value + cards[i].suit + " "
+		else: 
+			printable += "*** "
+		count += 1
+	return printable
 
 def assignCards(game): 
 	global deck 
@@ -96,25 +129,32 @@ def assignCards(game):
 		# get key of player 
 		value = values[i]
 		# get returned stock with remaining cards in deck 
-		stock, playerCards = randomCards(stock)
+		stock, playerCards = randomCardsToPlayer(stock)
 
 		# updated game dictionary to also add the cards that each player has 
 		value.append(playerCards)
 		player = dict({key:value})
 		game.update(player)
+		# print("Player: ", key)
+		# print(printPlayerCards(playerCards, 2))
 
 	print("Game details: ", json.dumps(game))
 	# returns game info and stock deck 
 	return game, stock
 
-def randomCards(stock): 
+def randomCardsToPlayer(stock): 
 	playerCards = []
 	# gets 6 random cards for ONE player 
 	for i in range (0, 6):
-		cardIndex = random.randint(0, len(stock))
+		cardIndex = random.randint(0, len(stock)-1)
 		card = stock.pop(cardIndex)
 		playerCards.append(card)
 	return stock, playerCards 
+
+def randomCard(stock): 
+	cardIndex = random.randint(0, len(stock))
+	card = stock.pop(cardIndex)
+	return stock, card
 
 def start(dealer, k): 
 	global playerNames
