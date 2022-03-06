@@ -284,7 +284,7 @@ def randomCard(cards):
 	card = cards.pop(cardIndex)
 	return card
 
-# GAME FUNCTIONS-----------------------------------------------------------------------------------------------
+# GAME FUNCTIONS------------------------------------------------------------------------------------------------------------------------------------------
 
 # gets the dealer and how many players there are supposed to be 
 # total number of players = k + 1 
@@ -315,6 +315,14 @@ def start(dealer, k):
 		# store in array for game 
 		newGame.update(dict({dealer:dealerInfo}))
 		newGame.update(dict({"dealer":str(dealer)}))
+		
+		# NEED CONFIRMATION FROM CLIENT 
+		ip = dealerInfo[0]
+		port = dealerInfo[1]
+		reply = "game"
+		serverSocket.sendto(reply.encode(),(ip,port))
+		# ISSUE: confirm could be command argument from other client 
+		confirm, ip, port = receiveMsg() # stalls here until confirms 
 
 		# get random players and store in newGame   
 		for i in range(1, totalPlayers): # min = 2, max = 4 (already registered 1)
@@ -323,6 +331,13 @@ def start(dealer, k):
 			newPlayerInfo = availToPlay.pop(newPlayerName)
 			newPlayer = dict({newPlayerName:newPlayerInfo})
 			newGame.update(newPlayer) # add to dict of newGame
+
+			# NEED CONFIRMATION FROM CLIENT 
+			ip = newPlayerInfo[0]
+			port = newPlayerInfo[1]
+			reply = "game"
+			serverSocket.sendto(reply.encode(),(ip,port))
+			confirm, ip, port = receiveMsg() # stalls here until confirms (should be max 5 second confirmation) and all in play()
 		
 		# setting a game identifier
 		gameIdentifier = 1
@@ -339,6 +354,10 @@ def start(dealer, k):
 		round = dict({"round":0})
 		newGame.update(round)
 
+		# CONFIRMATION FROM ALL PLAYERS THAT IT KNOWS 
+		# send message to all players 
+
+		# TESTING 
 		winner = play(newGame)
 		print(winner)
 
@@ -533,7 +552,7 @@ def end(gameIdentInput, dealer):
 	
 	return reply
 
-# COMMANDS-----------------------------------------------------------------------------------------------
+# COMMANDS-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # takes in the command that client chose and determines outputs based on that 
 def clientCmd(message,clientIP,clientPort):
@@ -541,8 +560,6 @@ def clientCmd(message,clientIP,clientPort):
 	global serverSocket
 	global playerNames
 	global games
-	print("Beginning of clientCmd")
-	# print("message:", message)
 
 	cmd_list = message.split( )
 	action = cmd_list[0]
@@ -625,7 +642,6 @@ def clientCmd(message,clientIP,clientPort):
 		# del playersInfo[name]
 		# playerNames.remove(name)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-	print("End of clientCmd")
 
 
 # def main():
@@ -636,15 +652,21 @@ def clientCmd(message,clientIP,clientPort):
 # 		message,clientIP,clientPort = receiveMsg() #decoded msg
 # 		clientCmd(message,clientIP,clientPort)
 
-# def create_thread(message,clientIP,clientPort):
-#     clientCmd(message,clientIP,clientPort)
+def create_thread(message,clientIP,clientPort):
+    # while True: 
+	# 	if (clientIP, clientPort) not in availToPlay: 
+	# 		clientCmd(message,clientIP,clientPort)
+	# 	else: 
+	# 		sendMsg("game")
+	return 0
+
 
 def main():
     setupServer()
     # creates base deck to use 
     createDeck() 
     while True:
-        message,clientIP,clientPort = receiveMsg() #decoded msg
+        message,clientIP,clientPort = receiveMsg() #decoded msg stalls here 
         thread_new = Thread(target=clientCmd,args=[message,clientIP,clientPort])
         thread_new.start()
         #message,(clientIP,clientPort) = serverSocket.recvfrom(2048)
@@ -653,4 +675,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

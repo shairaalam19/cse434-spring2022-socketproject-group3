@@ -1,5 +1,4 @@
 from http import client
-from queue import Queue
 import random
 from socket import *
 import json
@@ -8,7 +7,9 @@ import random
 from copy import deepcopy
 from math import ceil
 from math import floor
-import threading
+
+from threading import Thread
+threads = 0
 
 playerPorts = [] # just player ports 
 playerNames = [] # just player names 
@@ -17,30 +18,21 @@ games = {}
 playersInfo = {} # all info
 availToPlay = {} # players that are NOT in a game 
 deck = {}
-
-threadsNum=3 #one for new connections, one for menu, one for game
-jobsNum =[1,2] #one for connection, one for menu
-queue = Queue()
-
-
-printCardValue = {
-	"A" : " A", 
-	2 : " 2",
-	3 : " 3",
-	4 : " 4",
-	5 : " 5",
-	6 : " 6",
-	7 : " 7",
-	8 : " 8",
-	9 : " 9",
-	10 : "10",
-	"J" : " J",
-	"Q" : " Q",
-	"K" : " K"
-}
-
-
-
+    # cardValue = {
+    #     "A" : 1, 
+    #     "2" : -2,
+    #     "3" : 3,
+    #     "4" : 4,
+    #     "5" : 5,
+    #     "6" : 6,
+    #     "7" : 7,
+    #     "8" : 8,
+    #     "9" : 9,
+    #     "10" : 10,
+    #     "J" : 10,
+    #     "Q" : 10,
+    #     "K" : 0
+    # }
 
 # SOCKET FUNCTION 
 
@@ -48,7 +40,7 @@ printCardValue = {
 def setupServer():
 	global serverPort
 	global serverSocket
-	serverPort = 2600
+	serverPort = 2700
 	serverSocket = socket(AF_INET,SOCK_DGRAM)
 	serverSocket.bind(('',serverPort))
 	print("The manager is ready to receive... \n")
@@ -104,25 +96,84 @@ def createDeck():
 	# print(deck[0].value, deck[0].suit)
 	return deck 
 
+def cardValue(card): 
+    cardValue = {
+        "A" : 1, 
+        2 : -2,
+        3 : 3,
+        4 : 4,
+        5 : 5,
+        6 : 6,
+        7 : 7,
+        8 : 8,
+        9 : 9,
+        10 : 10,
+        "J" : 10,
+        "Q" : 10,
+        "K" : 0
+    }
+    return cardValue.get(card, False)
+
+def totalScore(cards): 
+    total = 0
+    for i in range (0, len(cards)): 
+        card = cards[i].value
+        value = cardValue(card)
+        if value != False:
+            total += value
+    return total
+
+def partialScore(cards, show):
+    total = 0
+    for i in range (0, show): 
+        card = cards[i].value 
+        value = cardValue(card)
+        if value != False:
+            total += value
+    return total
+
+def printCardValue(card): 
+    cardPrint = {
+		"A" : " A", 
+		2 : " 2",
+		3 : " 3",
+		4 : " 4",
+		5 : " 5",
+		6 : " 6",
+		7 : " 7",
+		8 : " 8",
+		9 : " 9",
+		10 : "10",
+		"J" : " J",
+		"Q" : " Q",
+		"K" : " K"
+	}
+    return cardPrint.get(card, False)
+
 # Can print any cards in set (can print players cards or all cards -> depends on tuples )
 def printPlayerCards(cards, show):
 	printable = ""
 	count = 0
+	# first row 
 	for i in range (0, int(floor(len(cards)/2)) ): 
 		if count < show:
-			value = printCardValue.get(cards[i].value)
+			card = cards[i].value
+			value = printCardValue(card)
 			printable += value + cards[i].suit + " "
 		else: 
 			printable += "*** "
 		count += 1
 	printable += "\n"
+	# 2nd row 
 	for i in range (int(ceil(len(cards)/2)), len(cards)): 
 		if count < show:
-			value = printCardValue.get(cards[i].value)
+			card = cards[i].value
+			value = printCardValue(card)
 			printable += value + cards[i].suit + " "
 		else: 
 			printable += "*** "
 		count += 1
+	printable += "\n"
 	return printable
 
 def assignCards(game): 
@@ -151,10 +202,13 @@ def assignCards(game):
 		player = dict({key:value})
 		game.update(player)
 		# print("Player: ", key)
-		# print(printPlayerCards(playerCards, 2))
+		# print(printPlayerCards(playerCards, 6))
+		# print(totalScore(playerCards))
+		# print(partialScore(playerCards, 2))
 
-	print("Game details: ", json.dumps(game))
+	# print("Game details: ", json.dumps(game))
 	# returns game info and stock deck 
+	print(winner(game))
 	return game, stock
 
 def randomCardsToPlayer(stock): 
@@ -197,19 +251,19 @@ def start(dealer, k):
 		# store in array for game 
 		newGame.update(dict({dealer:dealerInfo}))
 
-		# get random players   
+		# get random players and store in newGame   
 		for i in range(1, k+1): # gets at least 1 other player up until max 4 
 			# get new player info 
 			newPlayerName = random.choice(list(availToPlay))
 			newPlayerInfo = availToPlay.pop(newPlayerName)
 			newPlayer = dict({newPlayerName:newPlayerInfo})
 			newGame.update(newPlayer) # add to dict of newGame
-
 		# ex) 
 		# games = {
 		# 	1: {
 		# 		player: playerInfo,
-		# 		player: playerInfo
+		# 		player: playerInfo, 
+		# 		round: 0
 		# 	},
 		# 	2: {
 		# 		player: playerInfo,
@@ -230,17 +284,53 @@ def start(dealer, k):
 		# print("Current game: ", json.dumps(newGame))
 		# print("Current deck: ", json.dumps(deck))
 
+		# assign cards to every new player 
 		assignCards(newGame)
+		round = dict({"round":0})
+		newGame.update(round)
 
 		reply = 'SUCCESSFUL'
 
 	return reply
 
+def winner(game):
+	# gets all the players' names in the game 
+	keys = list(game) 
+
+	# gets all the values of the players in the game  
+	values = list(game.values())
+
+	playerScores = {}
+
+	# gets random 6 cards for EACH player between the first player and the last player 
+	for i in range (0, len(game)):
+		# get name of player 
+		name = keys[i]
+		# get values of player 
+		value = values[i]
+
+		# get cards of player 
+		cards = value[2]
+
+		# get returned stock with remaining cards in deck 
+		score = totalScore(cards)
+
+		playerScore = dict({name:score})
+		playerScores.update(playerScore)
+	
+	# print(json.dumps(playerScores))
+
+	winner = min(playerScores)
+
+	return winner
+
 def end(gameIdentInput, dealer):
 	global games
 	reply = ''
 	endedGame = {}
-	
+	print("Before game end:")
+	print("availToPlay: ", json.dumps(availToPlay))
+	print("games: ", json.dumps(games))
 	if gameIdentInput.isnumeric():
 		gameIdentifier = int(gameIdentInput)
 		if gameIdentifier in games:
@@ -255,14 +345,17 @@ def end(gameIdentInput, dealer):
 				playersInfo = list(endedGame.values())
 				for i in range(0, len(playersInfo)): 
 					# get IP and port of each player and store back in availToPlay 
-					ip = playersInfo[i][0]
-					port = playersInfo[i][1]
 					name = playersName[i]
-					info = [ip, port]
-					player = dict({name:info})
-					availToPlay.update(player)
-				reply = 'SUCCESSFUL'
-				# print("Updated availToPlay: ", json.dumps(availToPlay))
+					if name != "round":
+						ip = playersInfo[i][0]
+						port = playersInfo[i][1]
+						info = [ip, port]
+						player = dict({name:info})
+						availToPlay.update(player)
+					reply = 'SUCCESSFUL'
+				print("After game end:")
+				print("availToPlay: ", json.dumps(availToPlay))
+				print("games: ", json.dumps(games))
 	else: 
 		reply = 'FAILURE. gameIdentifier does not exist.'
 		print(json.dumps(games))
@@ -287,8 +380,8 @@ def clientCmd(message,clientIP,clientPort):
 		player_port = int(cmd_list[3]) # fourth argument in message received
 		player_name = (cmd_list[1]) # name is second argument
 
-		print('player port is: ', player_port, '\n')
-		print(playerPorts, '\n')
+		# print('player port is: ', player_port, '\n')
+		# print(playerPorts, '\n')
 
 		reply = ''
 		registered = register(player_name, clientIP, player_port)
@@ -338,65 +431,40 @@ def clientCmd(message,clientIP,clientPort):
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 	if action == 'de-register':
+		reply = ''
 		name = cmd_list[1]
 		if name in playerNames: 
-			playersInfo.pop(name)
+			removedInfo = playersInfo.pop(name)
+			playerNames.remove(name)
+			playerPorts.remove(removedInfo[1])
 			reply = 'SUCCESSFUL'
 		else: 
 			reply = 'FAILURE'
-		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 		#print('All player ports:',playerPorts)
 		#print('All player names:',playerNames)
-		print('After de-register:', playersInfo, '\n')
+		print('After de-registering {name}: ', playersInfo, '\n')
 		# del playersInfo[name]
 		# playerNames.remove(name)
+		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 
-
-# def main():
-# 	setupServer()
-# 	# creates base deck to use 
-# 	createDeck() 
-# 	while True:
-# 		message,clientIP,clientPort = receiveMsg() #decoded msg
-# 		#message,(clientIP,clientPort) = serverSocket.recvfrom(2048)
-# 		#print(message.decode())
-# 		clientCmd(message,clientIP,clientPort)
+def create_thread(message,clientIP,clientPort):
+	clientCmd(message,clientIP,clientPort)
 
 
 def main():
-	create_threads()
-	create_queue()
-
-def create_Socket():
 	setupServer()
 	# creates base deck to use 
 	createDeck() 
 	while True:
 		message,clientIP,clientPort = receiveMsg() #decoded msg
+		thread_new = Thread(target=clientCmd,args=[message,clientIP,clientPort])
+		thread_new.start()
 		#message,(clientIP,clientPort) = serverSocket.recvfrom(2048)
 		#print(message.decode())
-		#clientCmd(message,clientIP,clientPort)
+		
         
-def create_threads(): 
-	for _ in range(threadsNum):
-		t = threading.Thread(target=work)
-		t.daemon = True
-		t.start()
-
-def work():
-	while True:
-		x = queue.get()
-		if x == 1:
-			create_Socket()
-		if x == 2:
-			clientCmd()
-	
-def create_queue():
-	for x in jobsNum:
-		queue.put(x)
-	queue.join()
 
 if __name__ == "__main__":
     main()
