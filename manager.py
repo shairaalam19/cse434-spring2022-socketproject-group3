@@ -541,7 +541,7 @@ def clientCmd(message,clientIP,clientPort):
 	global serverSocket
 	global playerNames
 	global games
-	print("Beginning of clientCmd")
+	# print("Beginning of clientCmd")
 	# print("message:", message)
 
 	cmd_list = message.split( )
@@ -625,7 +625,7 @@ def clientCmd(message,clientIP,clientPort):
 		# del playersInfo[name]
 		# playerNames.remove(name)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-	print("End of clientCmd")
+	# print("End of clientCmd")
 
 
 # def main():
