@@ -374,6 +374,20 @@ def play(game):
 				# get score at this point in round 
 				score = partialScore(cards, round+1)
 
+				topPlayer, topScore = winner(game)
+				
+				# currently not winning, so switch cards 
+				if topScore < score: 
+					# get stock pile 
+					stock = game.get("stock")
+					# get top of stock pile 
+					swapCard = topCard(stock)
+					# swap cards with the stock pile 
+					cards, oldCard = swap(cards, round, swapCard)
+					# put the oldCard in the discard pile 
+					discard = game.get("discard")
+					discard.insert(0, oldCard)
+					score = partialScore(cards, round+1)
 				# update score for player in game 
 				value[3] = score
 				player = dict({name:value})
@@ -385,11 +399,20 @@ def play(game):
 		print("Round ", round, ": ", json.dumps(game))
 
 	# game done and send winner 
-	winningPlayer = winner(game)
+	winningPlayer, winningScore = winner(game)
 
 	return winningPlayer
 
-# calculate who is winner in game 
+# cards : player cards 
+# oldIndex : the card it wants to swap with 
+# newCard : the card from the discard/stock pile 
+# return cards, oldCard : returns the new set of cards of the players, returns the discarded card that goes back to the pile 
+def swap(cards, oldIndex, newCard): 
+    oldCard = cards.pop(oldIndex)
+    cards.insert(oldIndex, newCard)
+    return cards, oldCard
+
+# calculate who is winner in game and their score 
 def winner(game):
 	# gets all the players' names in the game 
 	players = list(game) 
@@ -422,7 +445,7 @@ def winner(game):
 	# find the one with the lowest score 
 	winner = min(playerScores, key=playerScores.get)
 
-	return winner
+	return winner, playerScores.get(winner)
 
 # end the game and put back all the players in game into availToPlay 
 def end(gameIdentInput, dealer):
