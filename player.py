@@ -13,21 +13,6 @@ import pickle
 
 playerName = ''
 cards = {}
-    # cardValue = {
-    #     "A" : 1, 
-    #     "2" : -2,
-    #     "3" : 3,
-    #     "4" : 4,
-    #     "5" : 5,
-    #     "6" : 6,
-    #     "7" : 7,
-    #     "8" : 8,
-    #     "9" : 9,
-    #     "10" : 10,
-    #     "J" : 10,
-    #     "Q" : 10,
-    #     "K" : 0
-    # }
 
 def setupServer():
     global serverIP
@@ -38,6 +23,47 @@ def setupServer():
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     #if clientSocket:
         #print('connected')
+
+def play():
+    global serverIP
+    global serverPort
+
+    reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+    reply = reply.decode()
+
+    # send confirmation that it is in game 
+    # reply = "confirm"
+    # sendMsg(reply.encode(), serverIP, serverPort)
+    # print("YOU ARE PLAYING A GAME \n")
+    # message, ip, port = receiveMsg() 
+
+    # play through the messages while in play 
+    # print("Outside of while: ", reply)
+    while reply != 'GAME OVER': 
+        # print("Inside while reply != 'GAME OVER' ")
+        print(reply)
+        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+        reply = reply.decode()
+    
+    # get out of the while loop once the server message says its game over 
+    if reply == 'GAME OVER':
+        # # reply = reply.decode()
+        # game = json.loads(reply)
+        # # print(game)
+        # print("PLAYERS: ")
+        # for name in game: 
+        #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #         value = game.get(name)
+        #         # print(value)
+        #         ip = value[0]
+        #         port = value [1]
+        #         cards = value[2]
+        #         printCards = printPlayerCards(cards, 6)
+        #         print(name, ':')
+        #         print(printCards)
+        print(reply)
+    else:
+        print(reply)
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
@@ -188,35 +214,52 @@ def commandClient():
     
     if action == 'start':
         if cmdChoice_list[1] == 'game':
+            # send command to user about starting game 
             sendMsg(commandChoice, serverIP, serverPort)
-            reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-            reply = reply.decode()
-            # print("Outside of while: ", reply)
-            while reply != 'GAME OVER': 
-                # print("Inside while reply != 'GAME OVER' ")
-                print(reply)
-                reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-                reply = reply.decode()
-            if reply == 'GAME OVER':
-                # # reply = reply.decode()
-                # game = json.loads(reply)
-                # # print(game)
-                # print("PLAYERS: ")
-                # for name in game: 
-                #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
-                #         value = game.get(name)
-                #         # print(value)
-                #         ip = value[0]
-                #         port = value [1]
-                #         cards = value[2]
-                #         printCards = printPlayerCards(cards, 6)
-                #         print(name, ':')
-                #         print(printCards)
-                print(reply)
-            commandClient()
-        else: 
-            print('FAILURE. Command not correct.')
-            commandClient()
+            # receive initial message from server 
+            # reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+            # reply = reply.decode()
+
+            # waiting for confirmation from manager saying that it can play 
+            reply, serverIP, serverPort = receiveMsg()
+            if reply == "SUCCESSFUL":
+                print(reply,"\n")
+                play()
+            else: 
+                print(reply,"\n")
+                commandClient()
+
+        #     # play through the messages while in play 
+        #     # print("Outside of while: ", reply)
+        #     while reply != 'GAME OVER': 
+        #         # print("Inside while reply != 'GAME OVER' ")
+        #         print(reply)
+        #         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+        #         reply = reply.decode()
+            
+        #     # get out of the while loop once the server message says its game over 
+        #     if reply == 'GAME OVER':
+        #         # # reply = reply.decode()
+        #         # game = json.loads(reply)
+        #         # # print(game)
+        #         # print("PLAYERS: ")
+        #         # for name in game: 
+        #         #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #         #         value = game.get(name)
+        #         #         # print(value)
+        #         #         ip = value[0]
+        #         #         port = value [1]
+        #         #         cards = value[2]
+        #         #         printCards = printPlayerCards(cards, 6)
+        #         #         print(name, ':')
+        #         #         print(printCards)
+        #         print(reply)
+        #     else:
+        #         print(reply)
+        #     commandClient()
+        # else: 
+        #     print('FAILURE. Command not correct.')
+        #     commandClient()
 
     if action == 'end':
         sendMsg(commandChoice, serverIP, serverPort)

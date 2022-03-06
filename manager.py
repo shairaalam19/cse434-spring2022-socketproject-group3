@@ -286,7 +286,24 @@ def randomCard(cards):
 
 # GAME FUNCTIONS-----------------------------------------------------------------------------------------------
 
-# gets the dealer and how many players there are supposed to be 
+def check(dealer, k):
+	reply = ''
+	totalPlayers = k + 1 
+	# checks if dealer exists 
+	if dealer not in playerNames: 
+		reply = 'FAILURE'
+	# checks if number of additional players are in range 1 <= k <= 3 
+	# min = 2, max = 4
+	elif k < 1 or k > 3:
+		reply = 'FAILURE'
+	# checks if enough players available to play for the game 
+	elif len(availToPlay) < totalPlayers:
+		reply = 'FAILURE'
+	else: 
+		reply = 'SUCCESSFUL'
+	return reply
+
+# adds the players to a game 
 # total number of players = k + 1 
 def start(dealer, k): 
 	global playerNames
@@ -454,11 +471,6 @@ def swap(cards, oldIndex, newCard):
 
 # calculate who is winner in game and their score 
 def winner(game):
-	# gets all the players' names in the game 
-	# players = list(game) 
-
-	# gets all the info of the players in the game  
-	# values = list(game.values())
 
 	playerScores = {}
 
@@ -591,10 +603,15 @@ def clientCmd(message,clientIP,clientPort):
 
 		if k.isnumeric(): 
 			k = int(k)
-			reply = start(dealer, k)
-			# serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-			serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-			# serverSocket.sendto(reply.encode(),(clientIP,clientPort))
+			reply = check(dealer, k)
+			# game can start 
+			if reply == 'SUCCESSFUL':
+				sendMsg(reply, clientIP, clientPort)
+				reply = start(dealer,k)
+				sendMsg(reply, clientIP, clientPort)
+			# game is not eligible to start and tells the player that 
+			else:
+				sendMsg(reply, clientIP, clientPort)
 		else: 
 			reply = 'FAILURE'
 			# return message 

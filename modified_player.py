@@ -318,22 +318,3 @@ while True:
             print("Closing client socket.")
             clientSocket.close()
             break;
-        # elif response == "FAILURE": don't do anything cause it'll loop 
-
-    # REMOVE
-    # message, ip, port = receiveMsg() # SERVER ALWAYS HAS TO SEND A MESSAGE 
-    # if message != "game": 
-    #     message = commandClient() #get input command
-    #     if message == 'SUCCESSFUL':
-    #         print("Closing client socket.")
-    #         clientSocket.close()
-    #         break;
-
-    #print(message)
-
-    # message, ip, port = receiveMsg()
-    # if message == "menu": 
-    #     message = commandClient()
-    # else: 
-    #     play()
-    
