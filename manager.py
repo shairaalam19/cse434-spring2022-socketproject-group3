@@ -214,23 +214,25 @@ def assignCards(game):
 	global deck 
 	
 	# gets all the players' names in the game 
-	keys = list(game) 
+	# keys = list(game) 
 
 	# gets all the values of the players in the game  
-	values = list(game.values())
+	# values = list(game.values())
 
 	# copy the original deck in stock pile  
 	stock = deepcopy(deck) 
 
 	# gets random 6 cards for EACH player 
-	for i in range (0, len(game)):
+	# for i in range (0, len(game)):
+	for name in game: 
 		# get name of player 
-		name = keys[i]
+		# name = keys[i]
 		# assigns cards to each player 
 		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
 			# get value of player 
 			# player: IP, port, cards, score 
-			value = list(values[i])
+			# value = list(values[i])
+			value = game.get(name)
 
 			# get returned stock with remaining cards in deck 
 			stock, playerCards = randomCardsToPlayer(stock)
@@ -350,23 +352,31 @@ def play(game):
 	# get round 
 	round = game.get("round")
 	# get all player names 
-	names = list(game)
-	# info = IP, port, card  
-	values = list(game.values())
+	# names = list(game)
+	# # info = IP, port, card  
+	# values = list(game.values())
 
 	# iterates through each round 
 	while round < 6:
 		# iterate through each player 
-		for i in range (0, len(game)):
+		# for i in range (0, len(game)):
+		for name in game:
 			# game = {
 			# 	player : IP, port, cards[], score
 			# }
 		
 			# get name of player 
-			name = names[i]
+			# name = names[i]
 			if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
 				# get values of player 
-				value = values[i]
+				# value = values[i]
+				value = game.get(name)
+
+				# get IP of players 
+				ip = value[0]
+				
+				# get port 
+				port = value[1]
 
 				# get cards of player 
 				cards = value[2]
@@ -384,6 +394,10 @@ def play(game):
 					swapCard = topCard(stock)
 					# swap cards with the stock pile 
 					cards, oldCard = swap(cards, round, swapCard)
+					# update player cards 
+					# value = game.get(name)
+					value[2] = cards 
+
 					# put the oldCard in the discard pile 
 					discard = game.get("discard")
 					discard.insert(0, oldCard)
@@ -393,10 +407,13 @@ def play(game):
 				player = dict({name:value})
 				game.update(player)
 
+				# serverSocket.sendto(cards.encode(),(ip,port))
+
 		# increment round 
 		round += 1
 		game.update({"round":round})
 		print("Round ", round, ": ", json.dumps(game))
+		# PRINT TO EACH OF THE PLAYERS AND WHAT THEIR CARDS LOOK LIKE IN THE ROUND 
 
 	# game done and send winner 
 	winningPlayer, winningScore = winner(game)
@@ -415,20 +432,21 @@ def swap(cards, oldIndex, newCard):
 # calculate who is winner in game and their score 
 def winner(game):
 	# gets all the players' names in the game 
-	players = list(game) 
+	# players = list(game) 
 
 	# gets all the info of the players in the game  
-	values = list(game.values())
+	# values = list(game.values())
 
 	playerScores = {}
 
 	# iterates through all of the players' scores 
-	for i in range (0, len(game)):
+	for name in game:
 		# get name of player 
-		name = players[i]
+		# name = players[i]
 		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
 			# get values of player 
-			value = values[i]
+			# value = values[i]
+			value = game.get(name)
 
 			# get score of player 
 			score = value[3]
