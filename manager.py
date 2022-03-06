@@ -15,6 +15,25 @@ games = {}
 playersInfo = {} # all info
 availToPlay = {} # players that are NOT in a game 
 deck = {}
+# ex) 
+# games = {
+# 	1: {
+# 		player: [ip, port, [card, card, card, card, card, card], score],
+# 		player: [ip, port, [card, card, card, card, card, card], score],
+# 		round: 0
+# 		dealer: name 
+# 		stock : [card, ... card]
+# 		discard: [card, ... card]
+# 	},
+# 	2: {
+# 		player: [ip, port, [card, card, card, card, card, card], score],
+# 		player: [ip, port, [card, card, card, card, card, card], score],
+# 		round: 0
+# 		dealer: name
+# 		stock: [card, ... card]
+# 		discard: [card, ... card]
+# 	}
+# }
     # cardValue = {
     #     "A" : 1, 
     #     "2" : -2,
@@ -31,9 +50,9 @@ deck = {}
     #     "K" : 0
     # }
 
-# SOCKET FUNCTION 
+# SOCKET FUNCTION-----------------------------------------------------------------------------------------------
 
-# sets up the server socket 
+# sets up the socket 
 def setupServer():
 	global serverPort
 	global serverSocket
@@ -81,7 +100,7 @@ def register(player_name, clientIP, player_port):
 		
 	return registered;
 
-# CARD FUNCTIONS
+# CARD FUNCTIONS-----------------------------------------------------------------------------------------------
 
 def createDeck(): 
 	global deck
@@ -93,6 +112,9 @@ def createDeck():
 	# print(deck[0].value, deck[0].suit)
 	return deck 
 
+# SCORING CARDS 
+
+# Returns value of the individual card to calculate score 
 def cardValue(card): 
     cardValue = {
         "A" : 1, 
@@ -111,6 +133,7 @@ def cardValue(card):
     }
     return cardValue.get(card, False)
 
+# calculates score of all cards that is passed 
 def totalScore(cards): 
     total = 0
     for i in range (0, len(cards)): 
@@ -120,6 +143,9 @@ def totalScore(cards):
             total += value
     return total
 
+# calculates score of shown cards 
+# cards: player's cards 
+# show: up to how many cards to calculate score of 
 def partialScore(cards, show):
     total = 0
     for i in range (0, show): 
@@ -129,6 +155,9 @@ def partialScore(cards, show):
             total += value
     return total
 
+# PRINTING CARDS
+
+# return value of card to print as deck in game 
 def printCardValue(card): 
     cardPrint = {
 		"A" : " A", 
@@ -147,7 +176,10 @@ def printCardValue(card):
 	}
     return cardPrint.get(card, False)
 
-# Can print any cards in set (can print players cards or all cards -> depends on tuples )
+# Can print any cards in set for player
+# cards : the player's cards 
+# show : how many cards to actually show and how many stay hidden 
+# return printable : string of cards to print 
 def printPlayerCards(cards, show):
 	printable = ""
 	count = 0
@@ -161,6 +193,7 @@ def printPlayerCards(cards, show):
 			printable += "*** "
 		count += 1
 	printable += "\n"
+
 	# 2nd row 
 	for i in range (int(ceil(len(cards)/2)), len(cards)): 
 		if count < show:
@@ -173,6 +206,10 @@ def printPlayerCards(cards, show):
 	printable += "\n"
 	return printable
 
+# ASSIGNING CARDS 
+
+# assign random cards to each player 
+# stores the stock and discard piles in the game dicitonary 
 def assignCards(game): 
 	global deck 
 	
@@ -182,32 +219,45 @@ def assignCards(game):
 	# gets all the values of the players in the game  
 	values = list(game.values())
 
-	# gamedeck 
+	# copy the original deck in stock pile  
 	stock = deepcopy(deck) 
 
-	# gets random 6 cards for EACH player between the first player and the last player 
+	# gets random 6 cards for EACH player 
 	for i in range (0, len(game)):
 		# get name of player 
-		key = keys[i]
-		# get key of player 
-		value = values[i]
-		# get returned stock with remaining cards in deck 
-		stock, playerCards = randomCardsToPlayer(stock)
+		name = keys[i]
+		# assigns cards to each player 
+		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+			# get value of player 
+			# player: IP, port, cards, score 
+			value = list(values[i])
 
-		# updated game dictionary to also add the cards that each player has 
-		value.append(playerCards)
-		player = dict({key:value})
-		game.update(player)
-		# print("Player: ", key)
-		# print(printPlayerCards(playerCards, 6))
-		# print(totalScore(playerCards))
-		# print(partialScore(playerCards, 2))
+			# get returned stock with remaining cards in deck 
+			stock, playerCards = randomCardsToPlayer(stock)
 
-	# print("Game details: ", json.dumps(game))
+			# add cards to player details 
+			value.append(playerCards)
+			# slot for score in player details 
+			value.append(0)
+			player = dict({name:value})
+			game.update(player)
+
+	# adds the stock pile to the game 
+	stockPile = dict({"stock":stock})
+	game.update(stockPile)
+
+	# initializes the discard pile 
+	discard = []
+	discardPile = dict({"discard":discard})
+	game.update(discardPile)
+
+	print("Game details: ", json.dumps(game))
+
 	# returns game info and stock deck 
-	print(winner(game))
-	return game, stock
+	return game
 
+# gets random 6 cards from stock pile 
+# return stock, playerCards : stock is the remaining cards, playerCards is the 6 random cards for player 
 def randomCardsToPlayer(stock): 
 	playerCards = []
 	# gets 6 random cards for ONE player 
@@ -217,13 +267,21 @@ def randomCardsToPlayer(stock):
 		playerCards.append(card)
 	return stock, playerCards 
 
-def randomCard(stock): 
-	cardIndex = random.randint(0, len(stock))
-	card = stock.pop(cardIndex)
-	return stock, card
+# returns top card on pile 
+def topCard(pile): 
+	top = pile.pop(0)
+	return top
 
-# GAME FUNCTIONS
+# gets a random card from given cards 
+def randomCard(cards): 
+	cardIndex = random.randint(0, len(cards))
+	card = cards.pop(cardIndex)
+	return cards, card
 
+# GAME FUNCTIONS-----------------------------------------------------------------------------------------------
+
+# gets the dealer and how many players there are supposed to be 
+# total number of players = k + 1 
 def start(dealer, k): 
 	global playerNames
 	global availToPlay
@@ -231,42 +289,34 @@ def start(dealer, k):
 	global deck
 
 	reply = ''
+	totalPlayers = k + 1 
+	# checks if dealer exists 
 	if dealer not in playerNames: 
 		reply = 'FAILURE'
-	# 1 <= k <= 3 
+	# checks if number of additional players are in range 1 <= k <= 3 
+	# min = 2, max = 4
 	elif k < 1 or k > 3:
 		reply = 'FAILURE'
-	elif len(availToPlay) < k+1:
+	# checks if enough players available to play for the game 
+	elif len(availToPlay) < totalPlayers:
 		reply = 'FAILURE'
 	else: 
-		# new game 
+		# new game dictionary
 		newGame = {}	
 
-		# setting index 0 as dealer 
 		# Take out dealer from available players list 
 		dealerInfo = availToPlay.pop(dealer)
 		# store in array for game 
 		newGame.update(dict({dealer:dealerInfo}))
+		newGame.update(dict({"dealer":str(dealer)}))
 
 		# get random players and store in newGame   
-		for i in range(1, k+1): # gets at least 1 other player up until max 4 
+		for i in range(1, totalPlayers): # min = 2, max = 4 (already registered 1)
 			# get new player info 
 			newPlayerName = random.choice(list(availToPlay))
 			newPlayerInfo = availToPlay.pop(newPlayerName)
 			newPlayer = dict({newPlayerName:newPlayerInfo})
 			newGame.update(newPlayer) # add to dict of newGame
-		# ex) 
-		# games = {
-		# 	1: {
-		# 		player: playerInfo,
-		# 		player: playerInfo, 
-		# 		round: 0
-		# 	},
-		# 	2: {
-		# 		player: playerInfo,
-		# 		player: playerInfo
-		# 	}
-		# }
 		
 		# setting a game identifier
 		gameIdentifier = 1
@@ -282,52 +332,106 @@ def start(dealer, k):
 		# print("Current deck: ", json.dumps(deck))
 
 		# assign cards to every new player 
+		# creates stock and discard piles 
 		assignCards(newGame)
+		# adds feature about which round it is in 
 		round = dict({"round":0})
 		newGame.update(round)
+
+		winner = play(newGame)
+		print(winner)
 
 		reply = 'SUCCESSFUL'
 
 	return reply
 
+# iterates through each round and determines score 
+def play(game):
+	# get round 
+	round = game.get("round")
+	# get all player names 
+	names = list(game)
+	# info = IP, port, card  
+	values = list(game.values())
+
+	# iterates through each round 
+	while round < 6:
+		# iterate through each player 
+		for i in range (0, len(game)):
+			# game = {
+			# 	player : IP, port, cards[], score
+			# }
+		
+			# get name of player 
+			name = names[i]
+			if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+				# get values of player 
+				value = values[i]
+
+				# get cards of player 
+				cards = value[2]
+
+				# get score at this point in round 
+				score = partialScore(cards, round+1)
+
+				# update score for player in game 
+				value[3] = score
+				player = dict({name:value})
+				game.update(player)
+
+		# increment round 
+		round += 1
+		game.update({"round":round})
+		print("Round ", round, ": ", json.dumps(game))
+
+	# game done and send winner 
+	winningPlayer = winner(game)
+
+	return winningPlayer
+
+# calculate who is winner in game 
 def winner(game):
 	# gets all the players' names in the game 
-	keys = list(game) 
+	players = list(game) 
 
-	# gets all the values of the players in the game  
+	# gets all the info of the players in the game  
 	values = list(game.values())
 
 	playerScores = {}
 
-	# gets random 6 cards for EACH player between the first player and the last player 
+	# iterates through all of the players' scores 
 	for i in range (0, len(game)):
 		# get name of player 
-		name = keys[i]
-		# get values of player 
-		value = values[i]
+		name = players[i]
+		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+			# get values of player 
+			value = values[i]
 
-		# get cards of player 
-		cards = value[2]
+			# get score of player 
+			score = value[3]
 
-		# get returned stock with remaining cards in deck 
-		score = totalScore(cards)
+			# get total score 
+			# score = totalScore(cards)
 
-		playerScore = dict({name:score})
-		playerScores.update(playerScore)
+			# update the dictionary of all players scores 
+			playerScore = dict({name:score})
+			playerScores.update(playerScore)
 	
 	# print(json.dumps(playerScores))
 
-	winner = min(playerScores)
+	# find the one with the lowest score 
+	winner = min(playerScores, key=playerScores.get)
 
 	return winner
 
+# end the game and put back all the players in game into availToPlay 
 def end(gameIdentInput, dealer):
 	global games
 	reply = ''
 	endedGame = {}
-	print("Before game end:")
-	print("availToPlay: ", json.dumps(availToPlay))
-	print("games: ", json.dumps(games))
+	# print("Before game end:")
+	# print("availToPlay: ", json.dumps(availToPlay))
+	# print("games: ", json.dumps(games))
 	if gameIdentInput.isnumeric():
 		gameIdentifier = int(gameIdentInput)
 		if gameIdentifier in games:
@@ -336,28 +440,36 @@ def end(gameIdentInput, dealer):
 			gameDealer = playersName[0]
 			if dealer != gameDealer:
 				reply = 'FAILURE. dealer is not correct.'
-				print(dealer)
-			else : 
+			else: 
+				# remove game from game identifier 
 				endedGame = games.pop(gameIdentifier)
+				# get all the players info 
 				playersInfo = list(endedGame.values())
+
+				# iterate through all the players 
 				for i in range(0, len(playersInfo)): 
-					# get IP and port of each player and store back in availToPlay 
+					# get name, IP, port of each player and store back in availToPlay 
 					name = playersName[i]
-					if name != "round":
+					if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
 						ip = playersInfo[i][0]
 						port = playersInfo[i][1]
 						info = [ip, port]
 						player = dict({name:info})
+						# store back into availToPlay so that these players can be another game again 
 						availToPlay.update(player)
-					reply = 'SUCCESSFUL'
+				reply = 'SUCCESSFUL'
 				print("After game end:")
 				print("availToPlay: ", json.dumps(availToPlay))
 				print("games: ", json.dumps(games))
+		else:
+			reply = 'FAILURE. gameIdentifier is not a game.'
 	else: 
-		reply = 'FAILURE. gameIdentifier does not exist.'
+		reply = 'FAILURE. gameIdentifier is not numeric.'
 		print(json.dumps(games))
 	
 	return reply
+
+# COMMANDS-----------------------------------------------------------------------------------------------
 
 # takes in the command that client chose and determines outputs based on that 
 def clientCmd(message,clientIP,clientPort):
@@ -440,7 +552,7 @@ def clientCmd(message,clientIP,clientPort):
 
 		#print('All player ports:',playerPorts)
 		#print('All player names:',playerNames)
-		print('After de-registering {name}: ', playersInfo, '\n')
+		print('After de-registering: ', playersInfo, '\n')
 		# del playersInfo[name]
 		# playerNames.remove(name)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))

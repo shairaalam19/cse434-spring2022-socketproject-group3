@@ -123,9 +123,13 @@ def partialScore(cards, show):
             total += value
     return total
 
-def swap(cards, oldIndex, new): 
+# cards : player cards 
+# oldIndex : the card it wants to swap with 
+# newCard : the card from the discard/stock pile 
+# return cards, oldCard : returns the new set of cards of the players, returns the discarded card that goes back to the pile 
+def swap(cards, oldIndex, newCard): 
     oldCard = cards.pop(oldIndex)
-    cards.insert(oldIndex, new)
+    cards.insert(oldIndex, newCard)
     return cards, oldCard
 
 def commandClient():
@@ -198,20 +202,28 @@ def commandClient():
         print(reply_de , '\n')
 
     if action == 'de-register':
-        sendMsg(commandChoice,serverIP,serverPort)
-        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-        reply_de = reply.decode()
+        if cmdChoice_list[1] == playerName:
+            sendMsg(commandChoice,serverIP,serverPort)
+            reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+            reply_de = reply.decode()
 
-        if reply_de == 'SUCCESSFUL':
-            print(reply_de, '\n')
-            playerName = ''
-            # closes client 
-            return reply_de 
-        elif reply_de == 'FAILURE': 
-            print(reply_de, '\n')
-            commandClient()
-        elif reply == '':
-            print('NO REPLY \n')
+            if reply_de == 'SUCCESSFUL':
+                print(reply_de, '\n')
+                playerName = ''
+                # closes client 
+                return 'SUCCESSFUL' 
+            elif reply_de == 'FAILURE': 
+                print(reply_de, '. did not de-register\n')
+                reply = commandClient()
+                if reply == 'SUCCESSFUL':
+                    return reply
+            elif reply == '':
+                print('NO REPLY \n')
+        else:
+            print('FAILURE. Not de-registering your player.', '\n')
+            reply = commandClient()
+            if reply == 'SUCCESSFUL':
+                return reply
             
 
 def sendMsg(message, IP, Port):
