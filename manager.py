@@ -19,18 +19,20 @@ deck = {}
 # ex) 
 # games = {
 # 	1: {
-# 		player: [ip, port, [card, card, card, card, card, card], score],
-# 		player: [ip, port, [card, card, card, card, card, card], score],
-# 		round: 0
-# 		dealer: name 
-# 		stock : [card, ... card]
+# 		player: [ip, port, [card, card, card, card, card, card], score, show],
+# 		player: [ip, port, [card, card, card, card, card, card], score, show],
+# 		maxCardShowing: 0, # the 
+# 		holes: 0, # number of iterations 
+# 		dealer: name,
+# 		stock: [card, ... card]
 # 		discard: [card, ... card]
 # 	},
 # 	2: {
-# 		player: [ip, port, [card, card, card, card, card, card], score],
-# 		player: [ip, port, [card, card, card, card, card, card], score],
-# 		round: 0
-# 		dealer: name
+# 		player: [ip, port, [card, card, card, card, card, card], score, show],
+# 		player: [ip, port, [card, card, card, card, card, card], score, show],
+# 		maxCardShowing: 0, # the 
+# 		holes: 0, # number of iterations 
+# 		dealer: name,
 # 		stock: [card, ... card]
 # 		discard: [card, ... card]
 # 	}
@@ -148,16 +150,33 @@ def totalScore(cards):
 # cards: player's cards 
 # show: up to how many cards to calculate score of 
 def partialScore(cards, show):
-    total = 0
-    for i in range (0, show): 
-        card = cards[i].value 
-        value = cardValue(card)
-        if value != False:
-            total += value
-    return total
+	total = 0
+	showCards = []
+	dups = []
+
+	# get all the cards up until the certain value 
+	for i in range (0, show): 
+		card = cards[i].value 
+		showCards.append(card)
+
+	calculate = removeDups(showCards)
+
+	for card in calculate:
+		total += cardValue(card)
+
+	return total
+
+def removeDups(cards):
+    showCards = []
+    for card in cards: 
+        if card not in showCards:
+            showCards.append(card)
+        else: 
+            index = showCards.index(card)
+            showCards.pop(index)
+    return showCards
 
 # PRINTING CARDS
-
 # return value of card to print as deck in game 
 def printCardValue(card): 
     cardPrint = {
@@ -205,13 +224,25 @@ def printPlayerCards(cards, show):
 			printable += "*** "
 		count += 1
 	printable += "\n"
+
 	return printable
+
+# return individual card printable version 
+def printCard(card):
+	# print("inside printCard()", json.dumps(card))
+	# print(str(card.value))
+	# print(json.dumps(card))
+	value = printCardValue(card[0])
+	printable = value + card[1]
+	# print(printable)
+	return printable
+
 
 # ASSIGNING CARDS 
 
 # assign random cards to each player 
 # stores the stock and discard piles in the game dicitonary 
-def assignCards(game): 
+def initializeCards(game): 
 	global deck 
 	
 	# gets all the players' names in the game 
@@ -222,53 +253,107 @@ def assignCards(game):
 
 	# copy the original deck in stock pile  
 	stock = deepcopy(deck) 
-
+	discard = []
 	# gets random 6 cards for EACH player 
 	# for i in range (0, len(game)):
 	for name in game: 
 		# get name of player 
 		# name = keys[i]
 		# assigns cards to each player 
-		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+		if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+			# print("Assigning cards to: ", name)
 			# get value of player 
 			# player: IP, port, cards, score 
 			# value = list(values[i])
 			value = game.get(name)
 
 			# get returned stock with remaining cards in deck 
-			stock, playerCards = randomCardsToPlayer(stock)
+			stock, discard, playerCards = randomCardsToPlayer(stock, discard)
 
 			# add cards to player details 
 			value.append(playerCards)
+			# print("playerCards: \n", json.dumps(playerCards))
+
 			# slot for score in player details 
 			value.append(0)
+			# slot for how many are cards are showing 
+			value.append(2)
 			player = dict({name:value})
 			game.update(player)
 
 	# adds the stock pile to the game 
-	stockPile = dict({"stock":stock})
-	game.update(stockPile)
+	game.update({"stock":stock})
 
 	# initializes the discard pile 
-	discard = []
-	discardPile = dict({"discard":discard})
-	game.update(discardPile)
+	firstDiscard = randomCard(stock)
+	discard.insert(0,firstDiscard)
+	game.update({"discard":discard})
 
 	# print("Game details: ", json.dumps(game), "\n")
 
 	# returns game info and stock deck 
 	return game
 
+# assign random cards to each player 
+# stores the stock and discard piles in the game dicitonary 
+def reassignCards(game): 
+	# gets random 6 cards for EACH player 
+
+	stock = game.get("stock")
+	discard = game.get("discard")
+	for name in game: 
+		# get name of player 
+		# name = keys[i]
+		# assigns cards to each player 
+		if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+			# get value of player 
+			# player: IP, port, cards, score 
+			# value = list(values[i])
+			value = game.get(name)
+
+			# get returned stock with remaining cards in deck 
+			stock, discard, cards = randomCardsToPlayer(stock, discard)
+
+			# add cards to player details 
+			value[2] = cards
+			# slot for how many are cards are showing 
+			value[4] = 2
+			# update game 
+			game.update({name:value})
+
+	# adds the stock pile to the game 
+	game.update({"stock":stock})
+
+	# updating the discard if it needed to restock 
+	game.update({"discard":discard})
+
+	# returns game info and stock deck 
+	return game
+
 # gets random 6 cards from stock pile 
 # return stock, playerCards : stock is the remaining cards, playerCards is the 6 random cards for player 
-def randomCardsToPlayer(stock): 
+def randomCardsToPlayer(stock, discard): 
+	# print("Inside randomCardsToPlayer()")
+	# print("stock:\n", json.dumps(stock))
+	# print("discard:\n", json.dumps(discard))
 	playerCards = []
 	# gets 6 random cards for ONE player 
 	for i in range (0, 6):
 		cardIndex = random.randint(0, len(stock)-1)
+		
+		if len(stock) == 0: 
+			# print("stock is empty")
+			restock(stock, discard)
+		
 		card = stock.pop(cardIndex)
+		# print(json.dumps(card))
 		playerCards.append(card)
-	return stock, playerCards 
+		# print(json.dumps(playerCards))	
+
+	# print("After getting random 6 cards")
+	# print("stock:\n", json.dumps(stock))
+	# print("discard:\n", json.dumps(discard))	
+	return stock, discard, playerCards 
 
 # returns top card on pile 
 def topCard(pile): 
@@ -280,8 +365,11 @@ def topCard(pile):
 
 # gets a random card from given cards 
 def randomCard(cards): 
-	cardIndex = random.randint(0, len(cards))
+	# print("Inside randomCard()")
+	cardIndex = random.randint(0, len(cards)-1)
+	# print("cardIndex:", cardIndex)
 	card = cards.pop(cardIndex)
+	# print(json.dumps(card))
 	return card
 
 # GAME FUNCTIONS-----------------------------------------------------------------------------------------------
@@ -312,159 +400,290 @@ def start(dealer, k):
 	global deck
 
 	reply = ''
-	totalPlayers = k + 1 
-	# checks if dealer exists 
-	if dealer not in playerNames: 
-		reply = 'FAILURE'
-	# checks if number of additional players are in range 1 <= k <= 3 
-	# min = 2, max = 4
-	elif k < 1 or k > 3:
-		reply = 'FAILURE'
-	# checks if enough players available to play for the game 
-	elif len(availToPlay) < totalPlayers:
-		reply = 'FAILURE'
-	else: 
-		# new game dictionary
-		newGame = {}	
+	totalPlayers = k + 1
 
-		# Take out dealer from available players list 
-		dealerInfo = availToPlay.pop(dealer)
-		# store in array for game 
-		newGame.update(dict({dealer:dealerInfo}))
-		newGame.update(dict({"dealer":str(dealer)}))
+	# INITIALIZING GAME -----------------------------------------------------------------------------------
 
-		# get random players and store in newGame   
-		for i in range(1, totalPlayers): # min = 2, max = 4 (already registered 1)
-			# get new player info 
-			newPlayerName = random.choice(list(availToPlay))
-			newPlayerInfo = availToPlay.pop(newPlayerName)
-			newPlayer = dict({newPlayerName:newPlayerInfo})
-			newGame.update(newPlayer) # add to dict of newGame
-		
-		# setting a game identifier
-		gameIdentifier = 1
-		while gameIdentifier in games: 
-			gameIdentifier = gameIdentifier + 1
+	# new game dictionary
+	newGame = {}	
 
-		# updating ALL the games 
-		games.update({gameIdentifier : newGame}) # add to games 
+	# Take out dealer from available players list 
+	dealerInfo = availToPlay.pop(dealer)
+	# store in array for game 
+	newGame.update(dict({dealer:dealerInfo}))
+	newGame.update(dict({"dealer":str(dealer)}))
 
-		# assign cards to every new player 
-		# creates stock and discard piles 
-		assignCards(newGame)
-		# adds feature about which round it is in 
-		round = dict({"round":0})
-		newGame.update(round)
+	# get random players and store in newGame   
+	for i in range(1, totalPlayers): # min = 2, max = 4 (already registered 1)
+		# get new player info 
+		newPlayerName = random.choice(list(availToPlay))
+		# ip, port
+		newPlayerInfo = availToPlay.pop(newPlayerName)
+		newPlayer = dict({newPlayerName:newPlayerInfo})
+		newGame.update(newPlayer) # add to dict of newGame
+	
+	# setting a game identifier
+	gameIdentifier = 1
+	while gameIdentifier in games: 
+		gameIdentifier = gameIdentifier + 1
 
-		winner = play(newGame)
-		print(winner)
+	# updating ALL the games 
+	games.update({gameIdentifier : newGame}) # add to games 
 
-		# send to client here 
-		reply = 'GAME OVER'
-		# reply = json.dumps(newGame)
+	# assign cards to every new player 
+	# creates stock and discard piles 
+	initializeCards(newGame)
+	# adds feature about which maxCardShowing it is in (shows how many cards to show )
+	newGame.update({"maxCardShowing":2})
+	
+	# how many holes it is in (max 9)
+	newGame.update({"hole":0})
+
+	# print(json.dumps(newGame))
+
+	# PLAY GAME ---------------------------------------------------------------------
+
+	winner = play(newGame, gameIdentifier)
+	print("WINNER:", winner)
+
+	# send to client here 
+	reply = 'GAME OVER'
+	# reply = json.dumps(newGame)
 
 	return reply
 
-# iterates through each round and determines score 
-def play(game):
+# iterates through each hole and iteration of players and determines score 
+def play(game, gameIdentifier):
 	global serverSocket
-	# get round 
-	round = game.get("round")
-	# iterates through each round 
-	while round < 6:
-		# iterate through each player 
-		# for i in range (0, len(game)):
-		print("Round ", str(round+1), ": \n")
-		for name in game:
-			# game = {
-			# 	player : IP, port, cards[], score
-			# }
-			
-			# get name of player 
-			if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
-				# get values of player 
-				# value = values[i]
-				value = game.get(name)
+	
+	# sends to players what the game identifier is 
+	for name in game:
+		# get name of player 
+		if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+			value = game.get(name)
+			# get IP of players 
+			ip = value[0]			
+			# get port 
+			port = value[1]
 
-				# get IP of players 
-				ip = value[0]
-				
-				# get port 
-				port = value[1]
+			reply = "Game Identifier: " + str(gameIdentifier)
+			sendMsg(reply, ip, port)
 
-				# get cards of player 
-				cards = value[2]
+	# get maxCardShowing - how many cards to show 
+	maxCardShowing = game.get("maxCardShowing")
+	hole = game.get("hole")
 
-				# SEND TO CLIENT
-				print(name)
-				print(ip)
-				print(port)
+	# iterate through all the holes 
+	while hole < 1:
+		print("Hole: ", hole, "\n")
+		# iterates through each player until 6 cards show for the first time  
+		# increments the maxCardShowing when a player swaps a card (can only increment once per iteration)
+		# maxCardShowing = 2
 
-				# Telling client what round it is 
-				reply = "ROUND " + str(round+1) + ":"
-				print(reply)
-				serverSocket.sendto(reply.encode(),(ip,port))
+		while maxCardShowing <= 6:
+			# swap = if something has been taken from the stock pile 
+			swap = False
 
-				# sending client the rounds it is in 
-				reply = printPlayerCards(cards, round+1)
-				print(reply)
-				serverSocket.sendto(reply.encode(),(ip,port))
-				
-				discard = game.get("discard")
+			# iterate through all the players 
+			for name in game:
+				# get name of player 
+				if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+					# get values of player 
+					value = game.get(name)
 
-				reply = topCard(discard)
-				reply = json.dumps(reply)
-				print(reply)
-				serverSocket.sendto(reply.encode(),(ip,port))
-
-				# get score at this point in round 
-				score = partialScore(cards, round+1)
-
-				topPlayer, topScore = winner(game)
-				
-				# currently not winning, so switch cards 
-				if topScore < score: 
-					# get stock pile 
-					stock = game.get("stock")
-					# get top of stock pile 
-					swapCard = randomCard(stock)
-					# swap cards with the stock pile 
-					cards, oldCard = swap(cards, round, swapCard)
-					# update player cards 
-					# value = game.get(name)
-					value[2] = cards 
-
-					# put the oldCard in the discard pile 
-					discard = game.get("discard")
-					discard.insert(0, oldCard)
-					score = partialScore(cards, round+1)
+					# get IP of players 
+					ip = value[0]				
+					# get port 
+					port = value[1]
+					# get cards of player 
+					cards = value[2]
+					# how many it is currently showing on the deck (max 6)
+					show = value[4]
 
 					# SEND TO CLIENT
-					reply = "SWAP: \n" + printPlayerCards(cards, round+1)
+					print(name)
+					print(ip)
+					print(port)
+
+					# SENDING HOLE
+					reply = "HOLE " + str(hole) + ":"
+					print(reply)
+					sendMsg(reply, ip, port)
+
+					# SENDING CARDS TO PLAYER
+					reply = printPlayerCards(cards, show)
 					print(reply)
 					serverSocket.sendto(reply.encode(),(ip,port))
+					
+					# SENDING DISCARD CARD TO PLAYER
+					# get the discard 
+					discard = game.get("discard")
+					# print("Discard", json.dumps(discard))
 
-				# update score for player in game 
-				value[3] = score
-				player = dict({name:value})
-				game.update(player)
+					topDiscard = discard[0]
+					# print("topDiscard")
+					# print(topDiscard)
+					cardPoints = cardValue(topDiscard[0])
+					# print(json.dumps(topDiscard))
+					# print("topDiscard", json.dumps(topDiscard))
+					# printedDiscard = printCard(topDiscard)
+					# print("printedDiscard: ", printedDiscard )
+					
+					if printCard(topDiscard) == False: 
+						reply = "Discard: no discarded cards" 
+					else: 
+						reply = "Discard:" + printCard(topDiscard)
 
-		# increment round 
-		round += 1
-		game.update({"round":round})
-		# print(json.dumps(game))
-		# PRINT TO EACH OF THE PLAYERS AND WHAT THEIR CARDS LOOK LIKE IN THE ROUND 
+					print(reply)
+					sendMsg(reply, ip, port)
+
+					# CALCULATE INFO TO DETERMINE DECISION 
+
+					# get score of current player 
+					score = partialScore(cards, show) # value[3]
+
+					# get score of current top player 
+					topPlayer, topScore = winner(game)
+
+					# get the current stock 
+					stock = game.get("stock")
+
+					# if there's nothing in the stock 
+					if len(stock) == 0: 
+						restock(stock, discard)
+
+					# calculate if theres dupes so far in player's cards 
+					subCards = cards[0:show]
+					subCards = removeDups(subCards)
+					# print(subCards)
+
+					# get average of cards 
+					sum = 0
+					# values = list(subCards.values())
+					for card in subCards:
+						point = cardValue(card)
+						sum += point
+					average = sum/len(subCards)
+
+					# print(topScore)
+					# print(score)
+
+					# DECISION
+					# 1) swap player card with randomCard(stock): if topScore < score 
+					if topScore < score: 
+						# print("inside topScore < score")
+						stockCard = randomCard(stock)
+						cards, oldCard = swapCard(cards, show-1, stockCard)
+						value[2] = cards
+						# print(json.dumps(cards))
+						# value.insert(2, cards)
+						discard = game.get("discard") # gets the discard pile 
+						discard.insert(0, oldCard) # discards the old card 
+						swap = True
+
+						# increment how many cards are showing  
+						value[4] += 1 # increments how many are showing for the player 
+						show = value[4]
+
+						# SEND TO CLIENT: prints updated cards 
+						reply = "SWAP WITH STOCK PILE: \n" + printPlayerCards(cards, show)
+						print(reply)
+						serverSocket.sendto(reply.encode(),(ip,port))
+
+					# 2) swap player card with topCard(discard)
+					elif (topDiscard in subCards) or (average > cardPoints):
+						# print("inside elif in play()")
+						if topDiscard in subCards:
+							matchIndex = subCards.index(topDiscard)
+							randomIndex = random.randint(0, show-1)
+							while randomIndex == matchIndex:
+								randomIndex = random.randint(0, show-1)
+							cards, oldCard = swapCard(cards, show-1, topDiscard)
+
+						else: 
+							cards, oldCard = swapCard(cards, show-1, topDiscard)
+
+						value[2] = cards 
+						discard.insert(0, oldCard)
+						swap = True 
+
+						# increment how many cards are showing 
+						value[4] += 1 # increments how many are showing for the player 
+						show = value[4]
+						
+						# SEND TO CLIENT: prints updated cards 
+						reply = "SWAP WITH DISCARD PILE: \n" + printPlayerCards(cards, show)
+						print(reply)
+						serverSocket.sendto(reply.encode(),(ip,port))
+
+					# 3) swap randomCard(stock) and put it onto the stack 
+					else: 
+						# print("inside else in play()")
+						# it is restocked if it was empty 
+						stockCard = randomCard(stock)
+						discard.insert(0, stockCard)
+
+						# do not update how many cards are showing 
+
+						# SEND TO CLIENT: prints updated cards 
+						reply = "FORFEIT STOCK CARD: \n" + printPlayerCards(cards, show)
+						print(reply)
+						serverSocket.sendto(reply.encode(),(ip,port))
+
+					# update score for player in game 
+					score = partialScore(cards, show-1)
+					value[3] = score
+
+					# update value for each player 
+					# player: ip, port, cards, score, show 
+					player = dict({name:value})
+					game.update(player)
+			
+			if swap == True: 
+				maxCardShowing += 1
+			game.update({"maxCardShowing":maxCardShowing})
+			# print(json.dumps(game))
+
+		playerCount = 0;
+		for name in game: 
+			if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+				playerCount += 1
+				info = game.get(name)
+				cards = info[2]
+				for card in cards: 
+					discard.insert(0, card)
+		
+		cardCount = playerCount * 6
+
+		if len(stock) <= cardCount: 
+			restock(stock, discard)
+
+		hole += 1
+		game.update({"hole":hole})
 
 	# game done and send winner 
 	winningPlayer, winningScore = winner(game)
 
 	return winningPlayer
 
+# if stock is empty, then reshuffle with the discard 
+def restock(game):
+	stock = game.get("stock")
+	discard = game.get("discard")
+    	
+	stock = stock + discard 
+	discard = []
+	discardedCard = randomCard(stock)
+	discard.insert(0, discardedCard)
+
+	game.update({"stock":stock})
+	game.update({"discard":discard})
+
 # cards : player cards 
 # oldIndex : the card it wants to swap with 
 # newCard : the card from the discard/stock pile 
 # return cards, oldCard : returns the new set of cards of the players, returns the discarded card that goes back to the pile 
-def swap(cards, oldIndex, newCard): 
+def swapCard(cards, oldIndex, newCard): 
     oldCard = cards.pop(oldIndex)
     cards.insert(oldIndex, newCard)
     return cards, oldCard
@@ -478,7 +697,7 @@ def winner(game):
 	for name in game:
 		# get name of player 
 		# name = players[i]
-		if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+		if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
 			# get values of player 
 			# value = values[i]
 			value = game.get(name)
@@ -519,20 +738,29 @@ def end(gameIdentInput, dealer):
 			else: 
 				# remove game from game identifier 
 				endedGame = games.pop(gameIdentifier)
-				# get all the players info 
-				playersInfo = list(endedGame.values())
+				# # get all the players info 
+				# playersInfo = list(endedGame.values())
 
-				# iterate through all the players 
-				for i in range(0, len(playersInfo)): 
-					# get name, IP, port of each player and store back in availToPlay 
-					name = playersName[i]
-					if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
-						ip = playersInfo[i][0]
-						port = playersInfo[i][1]
+				# # iterate through all the players 
+				# for i in range(0, len(playersInfo)): 
+				# 	# get name, IP, port of each player and store back in availToPlay 
+				# 	name = playersName[i]
+				# 	if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+				# 		ip = playersInfo[i][0]
+				# 		port = playersInfo[i][1]
+				# 		info = [ip, port]
+				# 		player = dict({name:info})
+				# 		# store back into availToPlay so that these players can be another game again 
+				# 		availToPlay.update(player)
+
+				for name in endedGame: 
+					if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+						value = endedGame.get(name)
+						ip = value[0]
+						port = value[1]
 						info = [ip, port]
-						player = dict({name:info})
-						# store back into availToPlay so that these players can be another game again 
-						availToPlay.update(player)
+						availToPlay.update({name:info})
+
 				reply = 'SUCCESSFUL'
 				print("After game end:")
 				print("availToPlay: ", json.dumps(availToPlay))

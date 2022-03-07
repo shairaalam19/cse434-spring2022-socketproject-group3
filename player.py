@@ -18,7 +18,8 @@ def setupServer():
     global serverIP
     global serverPort
     global clientSocket
-    serverIP = '10.120.70.106' 
+    # serverIP = '10.120.70.106' 
+    serverIP = '10.120.70.145'
     serverPort = 2700
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     #if clientSocket:
@@ -52,7 +53,7 @@ def play():
         # # print(game)
         # print("PLAYERS: ")
         # for name in game: 
-        #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #     if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer':
         #         value = game.get(name)
         #         # print(value)
         #         ip = value[0]
@@ -244,7 +245,7 @@ def commandClient():
         #         # # print(game)
         #         # print("PLAYERS: ")
         #         # for name in game: 
-        #         #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #         #     if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer':
         #         #         value = game.get(name)
         #         #         # print(value)
         #         #         ip = value[0]
