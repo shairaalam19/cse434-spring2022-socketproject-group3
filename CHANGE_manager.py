@@ -805,9 +805,9 @@ def end(gameIdentInput, dealer):
 				# 		availToPlay.update({name:info})
 
 				reply = 'SUCCESSFUL'
-				print("After game end:")
-				print("availToPlay: ", json.dumps(availToPlay))
-				print("games: ", json.dumps(games))
+				# print("After game end:")
+				# print("availToPlay: ", json.dumps(availToPlay))
+				# print("games: ", json.dumps(games))
 		else:
 			reply = 'FAILURE. gameIdentifier is not a game.'
 	else: 
@@ -915,6 +915,7 @@ def clientCmd(message,clientIP,clientPort):
 		print('After de-registering: ', playersInfo, '\n')
 		# del playersInfo[name]
 		# playerNames.remove(name)
+		print(reply)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
 
 	if action == '?':
@@ -931,12 +932,12 @@ def clientCmd(message,clientIP,clientPort):
         # ip and port wasn't found in availToPlay
 		if cmd_list[1] not in availToPlay:
 			reply = "game"
-			print(reply, "to ", cmd_list[1])
+			# print(reply, "to ", cmd_list[1])
 			sendMsg(reply, clientIP, clientPort)
         # found in availToPlay
 		else:
 			reply = "no"
-			print(reply, "to ", cmd_list[1])
+			# print(reply, "to ", cmd_list[1])
 			sendMsg(reply, clientIP, clientPort)
 
 # def main():

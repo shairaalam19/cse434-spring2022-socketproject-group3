@@ -43,8 +43,10 @@ def play():
 
     # play through the messages while in play 
     # print("Outside of while: ", reply)
-    while reply != 'GAME OVER' or reply == 'no': 
+    while reply != 'GAME OVER': 
         # print("Inside while reply != 'GAME OVER' ")
+        if reply == 'no':
+            break
         print(reply)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply = reply.decode()
@@ -65,10 +67,10 @@ def play():
         #         printCards = printPlayerCards(cards, 6)
         #         print(name, ':')
         #         print(printCards)
-        print(reply)
+        print("GAME OVER")
         return 0
-    else:
-        print(reply)
+    # else:
+    #     print(reply)
     # return 0
 
 def printMenu():
@@ -201,7 +203,7 @@ def commandClient():
     # Specific to command action 
     if action == 'register': 
         if playerName == '':
-            print("Inside register")
+            # print("Inside register")
             register = True
             sendMsg(commandChoice,serverIP,serverPort)
             # clientSocket.sendto(commandChoice.encode(),(serverIP,serverPort))
@@ -251,7 +253,7 @@ def commandClient():
         sendMsg(commandChoice, serverIP, serverPort)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply_de = reply.decode()
-        print(reply_de , '\n')
+        print("Game Ended" , '\n')
 
     if action == 'de-register':
         if cmdChoice_list[1] == playerName:
@@ -259,12 +261,17 @@ def commandClient():
             reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
             reply_de = reply.decode()
 
-            if reply_de == 'SUCCESSFUL':
-                print(reply_de, '\n')
+            # print(reply_de)
+
+            if reply_de == 'SUCCESSFUL' or reply_de == 'no':
+                print("SUCCESSFUL \n")
                 playerName = ''
                 register = False
                 # closes client 
-                return 'SUCCESSFUL' 
+                print("Closing client socket.")
+                clientSocket.close()
+                # return 'SUCCESSFUL' 
+                exit(0)
             elif reply_de == 'FAILURE': 
                 print(reply_de, '. did not de-register\n')
                 # reply = commandClient()
@@ -315,7 +322,7 @@ while True:
         response, serverIP, serverPort = receiveMsg()
         # print("response from server after asking ?: ", response)
         if response == "game":
-            print("Going to play game.")
+            # print("Going to play game.")
             play()
-        else:
-            print("Not playing a game.")
+        # else:
+            # print("Not playing a game.")
