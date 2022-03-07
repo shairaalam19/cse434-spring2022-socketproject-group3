@@ -1,4 +1,5 @@
 from http import client, server
+import select
 from socket import *
 from http import client
 import random
@@ -10,9 +11,11 @@ from copy import deepcopy
 from math import ceil
 from math import floor
 import pickle
+import sys
 
 playerName = ''
 cards = {}
+register = False
 
 def setupServer():
     global serverIP
@@ -33,21 +36,21 @@ def play():
     reply = reply.decode()
 
     # send confirmation that it is in game 
-    # reply = "confirm"
-    # sendMsg(reply.encode(), serverIP, serverPort)
-    # print("YOU ARE PLAYING A GAME \n")
-    # message, ip, port = receiveMsg() 
+    reply = "confirm"
+    sendMsg(reply, serverIP, serverPort)
+    print("YOU ARE PLAYING A GAME \n")
+    reply, ip, port = receiveMsg() 
 
     # play through the messages while in play 
     # print("Outside of while: ", reply)
-    while reply != 'GAME OVER': 
+    while reply != 'GAME OVER' or reply == 'no': 
         # print("Inside while reply != 'GAME OVER' ")
         print(reply)
         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
         reply = reply.decode()
     
     # get out of the while loop once the server message says its game over 
-    if reply == 'GAME OVER':
+    if reply == 'GAME OVER' or reply == 'no':
         # # reply = reply.decode()
         # game = json.loads(reply)
         # # print(game)
@@ -63,13 +66,17 @@ def play():
         #         print(name, ':')
         #         print(printCards)
         print(reply)
+        return 0
     else:
         print(reply)
+    # return 0
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
     menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <user>\nde-register <user> \n\n"
-    return menu + menuItems
+    # return menu + menuItems
+
+    print( menu + menuItems )
 
 def printCardValue(card): 
     cardPrint = {
@@ -165,16 +172,24 @@ def commandClient():
     global serverPort
     global clientSocket
     global playerName
+    global register
 
     # COMMAND STRUCTURE 
 	# register <user> <IP address> <port0> <port1> <port2>
 	# action player_name player
 
-    # Print menu for player 
-    commandPrompt = printMenu()
+    # # Print menu for player 
+    # commandPrompt = printMenu()
 
-    # WAITING HERE UNTIL USER RESPONSE 
-    commandChoice = input(commandPrompt) #command to sent to sever
+    # # WAITING HERE UNTIL USER RESPONSE 
+    # commandChoice = input(commandPrompt) #command to sent to sever
+
+    i,o,e = select.select([sys.stdin],[],[],3) #3 seconds to answer
+    if (i):
+        commandChoice = sys.stdin.readline().strip()
+    else:
+        #print('empty')
+        return 'empty'
 
     # splits user inputs into array
     cmdChoice_list = commandChoice.split( )
@@ -186,6 +201,8 @@ def commandClient():
     # Specific to command action 
     if action == 'register': 
         if playerName == '':
+            print("Inside register")
+            register = True
             sendMsg(commandChoice,serverIP,serverPort)
             # clientSocket.sendto(commandChoice.encode(),(serverIP,serverPort))
             #reply = receiveMsg()
@@ -200,12 +217,12 @@ def commandClient():
                 # return reply
             elif reply_de == 'FAILURE': 
                 print('FAILURE')
-                commandClient()
+                # commandClient()
             elif reply_de == '':
                 print('NO REPLY \n')
         else: 
             print('FAILURE. No player name.')
-            commandClient()
+            # commandClient()
     
     if action == 'query':
         sendMsg(commandChoice,serverIP,serverPort)
@@ -228,7 +245,7 @@ def commandClient():
                 play()
             else: 
                 print(reply,"\n")
-                commandClient()
+                # commandClient()
 
     if action == 'end':
         sendMsg(commandChoice, serverIP, serverPort)
@@ -245,20 +262,21 @@ def commandClient():
             if reply_de == 'SUCCESSFUL':
                 print(reply_de, '\n')
                 playerName = ''
+                register = False
                 # closes client 
                 return 'SUCCESSFUL' 
             elif reply_de == 'FAILURE': 
                 print(reply_de, '. did not de-register\n')
-                reply = commandClient()
-                if reply == 'SUCCESSFUL':
-                    return reply
+                # reply = commandClient()
+                # if reply == 'SUCCESSFUL':
+                    # return reply
             elif reply == '':
                 print('NO REPLY \n')
         else:
             print('FAILURE. Not de-registering your player.', '\n')
-            reply = commandClient()
-            if reply == 'SUCCESSFUL':
-                return reply
+            # reply = commandClient()
+            # if reply == 'SUCCESSFUL':
+                # return reply
             
 
 def sendMsg(message, IP, Port):
@@ -280,6 +298,7 @@ def receiveMsg():
 
 
 setupServer() #set up
+printMenu()
 
 while True: 
     message = commandClient() #get input command
@@ -288,4 +307,15 @@ while True:
         clientSocket.close()
         break;
     #print(message)
-    
+    if register == True:
+        # print("Inside register == True")
+        message = "? " + playerName
+        withName = message.split( )
+        sendMsg(message, serverIP, serverPort)
+        response, serverIP, serverPort = receiveMsg()
+        # print("response from server after asking ?: ", response)
+        if response == "game":
+            print("Going to play game.")
+            play()
+        else:
+            print("Not playing a game.")

@@ -11,6 +11,7 @@ from threading import Thread
 
 playerPorts = [] # just player ports 
 playerNames = [] # just player names 
+playerIPs = []
 gameCounter = 0
 games = {}
 playersInfo = {} # all info
@@ -81,27 +82,31 @@ def sendMsg(message,IP,Port):
 		serverSocket.sendto(message.encode(),(IP,Port))
 
 def register(player_name, clientIP, player_port): 
-	global playerPorts
-	global availToPlay
-	global playersInfo
-	global playerNames
-	global playerPorts
-	
-	registered = False
-	if (player_name not in playerNames) and (player_port not in playerPorts):
-		playerNames.append(player_name) # updating player names 
-		playerPorts.append(player_port) # updating player ports 
+    global playerPorts
+    global availToPlay
+    global playersInfo
+    global playerNames
+    global playerPorts
+    global playerIPs
 
-		# Updating total info 
-		info = [clientIP, player_port]
-		new_player = dict({player_name:info})
-		playersInfo.update(new_player)
-		availToPlay.update(new_player)
+    registered = False
+    if (player_name not in playerNames) and (player_port not in playerPorts):
+        playerNames.append(player_name) # updating player names 
+        playerPorts.append(player_port) # updating player ports 
+        playerPorts.append(player_port) # updating player ports 
+        if clientIP not in playerIPs:
+            playerIPs.append(clientIP)
 
-		registered = True
-		print(player_name + " is registered \n")
-		
-	return registered;
+    # Updating total info 
+    info = [clientIP, player_port]
+    new_player = dict({player_name:info})
+    playersInfo.update(new_player)
+    availToPlay.update(new_player)
+
+    registered = True
+    print(player_name + " is registered \n")
+
+    return registered;
 
 # CARD FUNCTIONS-----------------------------------------------------------------------------------------------
 
@@ -432,10 +437,10 @@ def start(dealer, k):
 		newGame.update(newPlayer) # add to dict of newGame
 
 		# # NEED CONFIRMATION FROM CLIENT 
-		# ip = newPlayerInfo[0]
-		# port = newPlayerInfo[1]
-		# reply = "game"
-		# serverSocket.sendto(reply.encode(),(ip,port))
+		ip = newPlayerInfo[0]
+		port = newPlayerInfo[1]
+		reply = "game"
+		serverSocket.sendto(reply.encode(),(ip,port))
 		# confirm, ip, port = receiveMsg() # stalls here until confirms (should be max 5 second confirmation) and all in play()
 		# print("Player: ", newPlayerName, "'s confirmation message: ", confirm)
 
@@ -468,6 +473,40 @@ def start(dealer, k):
 	reply = 'GAME OVER'
 	# reply = json.dumps(newGame)
 
+	for name in newGame:
+        # get name of player 
+		if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
+			value = newGame.get(name)
+			# get IP of players 
+			ip = value[0]			
+			# get port 
+			port = value[1]
+
+			sendMsg(reply, ip, port)
+
+			reply = 'no'
+
+			sendMsg(reply, ip, port)
+
+			info = [ip, port]
+			availToPlay.update({name:info})
+		# if name == newGame.get("dealer"):
+		# 	value = newGame.get(name)
+		# 	# get IP of players 
+		# 	ip = value[0]			
+		# 	# get port 
+		# 	port = value[1]
+
+		# 	reply = 'no'
+
+		# 	sendMsg(reply, ip, port)
+
+		# 	info = [ip, port]
+		# 	availToPlay.update({name:info})
+
+
+	# end(gameIdentifier, dealer)
+    
 	return reply
 
 # iterates through each hole and iteration of players and determines score 
@@ -756,28 +795,14 @@ def end(gameIdentInput, dealer):
 			else: 
 				# remove game from game identifier 
 				endedGame = games.pop(gameIdentifier)
-				# # get all the players info 
-				# playersInfo = list(endedGame.values())
 
-				# # iterate through all the players 
-				# for i in range(0, len(playersInfo)): 
-				# 	# get name, IP, port of each player and store back in availToPlay 
-				# 	name = playersName[i]
+				# for name in endedGame: 
 				# 	if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
-				# 		ip = playersInfo[i][0]
-				# 		port = playersInfo[i][1]
+				# 		value = endedGame.get(name)
+				# 		ip = value[0]
+				# 		port = value[1]
 				# 		info = [ip, port]
-				# 		player = dict({name:info})
-				# 		# store back into availToPlay so that these players can be another game again 
-				# 		availToPlay.update(player)
-
-				for name in endedGame: 
-					if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer' and name != 'hole':
-						value = endedGame.get(name)
-						ip = value[0]
-						port = value[1]
-						info = [ip, port]
-						availToPlay.update({name:info})
+				# 		availToPlay.update({name:info})
 
 				reply = 'SUCCESSFUL'
 				print("After game end:")
@@ -853,8 +878,10 @@ def clientCmd(message,clientIP,clientPort):
 			print(reply)
 			# game can start 
 			if reply == 'SUCCESSFUL':
+				sendMsg(reply, clientIP, clientPort) # sends back "SUCCESSFUL"
+				reply = start(dealer,k) # sends back "GAME OVER"
 				sendMsg(reply, clientIP, clientPort)
-				reply = start(dealer,k)
+				reply = 'no' # sends back "no"
 				sendMsg(reply, clientIP, clientPort)
 			# game is not eligible to start and tells the player that 
 			else:
@@ -889,8 +916,28 @@ def clientCmd(message,clientIP,clientPort):
 		# del playersInfo[name]
 		# playerNames.remove(name)
 		serverSocket.sendto(reply.encode(),(clientIP,clientPort))
-	# print("End of clientCmd")
 
+	if action == '?':
+		reply = ''
+		# available = False
+		# for player in availToPlay:
+        #     # player : ip, port
+		# 	value = availToPlay.get(player) 
+		# 	ip = value[0]
+		# 	port = value[1]
+		# 	if clientIP == ip and clientPort == port:
+		# 		available = True
+		# 		break
+        # ip and port wasn't found in availToPlay
+		if cmd_list[1] not in availToPlay:
+			reply = "game"
+			print(reply, "to ", cmd_list[1])
+			sendMsg(reply, clientIP, clientPort)
+        # found in availToPlay
+		else:
+			reply = "no"
+			print(reply, "to ", cmd_list[1])
+			sendMsg(reply, clientIP, clientPort)
 
 # def main():
 # 	setupServer()

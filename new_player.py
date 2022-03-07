@@ -1,4 +1,5 @@
 from http import client, server
+from secrets import choice
 from socket import *
 from http import client
 import random
@@ -10,6 +11,8 @@ from copy import deepcopy
 from math import ceil
 from math import floor
 import pickle
+import time
+import sys, select
 
 playerName = ''
 cards = {}
@@ -18,8 +21,7 @@ def setupServer():
     global serverIP
     global serverPort
     global clientSocket
-    # serverIP = '10.120.70.106' 
-    serverIP = '10.120.70.145'
+    serverIP = '10.120.70.145' 
     serverPort = 2700
     clientSocket = socket(AF_INET, SOCK_DGRAM)
     #if clientSocket:
@@ -28,32 +30,24 @@ def setupServer():
 def play():
     global serverIP
     global serverPort
+    reply = "confirm"
+    sendMsg(reply, serverIP, serverPort)
+    print("YOU ARE PLAYING A GAME \n")
+    message, ip, port = receiveMsg() 
+    while message != "GAME OVER": 
+        
+        print(message)
+        message, ip, port = receiveMsg() 
+        # gets all cards, the players, discard, stock pile 
+        # game = json.loads(message)
 
-    reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-    reply = reply.decode()
-
-    # send confirmation that it is in game 
-    # reply = "confirm"
-    # sendMsg(reply.encode(), serverIP, serverPort)
-    # print("YOU ARE PLAYING A GAME \n")
-    # message, ip, port = receiveMsg() 
-
-    # play through the messages while in play 
-    # print("Outside of while: ", reply)
-    while reply != 'GAME OVER': 
-        # print("Inside while reply != 'GAME OVER' ")
-        print(reply)
-        reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
-        reply = reply.decode()
-    
-    # get out of the while loop once the server message says its game over 
-    if reply == 'GAME OVER':
+    if message == 'GAME OVER':
         # # reply = reply.decode()
         # game = json.loads(reply)
         # # print(game)
         # print("PLAYERS: ")
         # for name in game: 
-        #     if name != 'maxCardShowing' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
         #         value = game.get(name)
         #         # print(value)
         #         ip = value[0]
@@ -63,13 +57,12 @@ def play():
         #         print(name, ':')
         #         print(printCards)
         print(reply)
-    else:
-        print(reply)
 
 def printMenu():
     menu = "Enter one of the following commands: \n"
     menuItems = "\nregister <user> <IPv4-address> <port> \nquery players \nstart game <user> <k> \nquery games \nend <game-identifier> <user>\nde-register <user> \n\n"
-    return menu + menuItems
+    # return menu + menuItems
+    print(menu+menuItems)
 
 def printCardValue(card): 
     cardPrint = {
@@ -171,10 +164,31 @@ def commandClient():
 	# action player_name player
 
     # Print menu for player 
-    commandPrompt = printMenu()
+    #commandPrompt = printMenu()
+
+   # print('in commandClient')
 
     # WAITING HERE UNTIL USER RESPONSE 
-    commandChoice = input(commandPrompt) #command to sent to sever
+    #commandChoice = input(commandPrompt) #command to sent to sever
+   # commandChoice = input()
+
+
+    # sec = 1
+    # start_time = time.time() #start timer
+    # passed  = time.time()-start_time #find difference 
+    # while passed<sec: 
+    #     commandChoice = input()
+    #     if passed >= sec and commandChoice == None: #if time timer is passed set time and no user input, then return
+    #         print('empty')
+    #         return 'empty'
+    #     passed = time.time() - start_time #update passed time
+
+    i,o,e = select.select([sys.stdin],[],[],3) #3 seconds to answer
+    if (i):
+        commandChoice = sys.stdin.readline().strip()
+    else:
+        #print('empty')
+        return 'empty'
 
     # splits user inputs into array
     cmdChoice_list = commandChoice.split( )
@@ -198,14 +212,17 @@ def commandClient():
                 print('SUCCESSFUL \n')
                 playerName = cmdChoice_list[1]
                 # return reply
+                return 'empty'
             elif reply_de == 'FAILURE': 
                 print('FAILURE')
-                commandClient()
+                # commandClient()
+                return 'empty'
             elif reply_de == '':
                 print('NO REPLY \n')
         else: 
             print('FAILURE. No player name.')
-            commandClient()
+            # commandClient()
+            return 'empty'
     
     if action == 'query':
         sendMsg(commandChoice,serverIP,serverPort)
@@ -224,11 +241,45 @@ def commandClient():
             # waiting for confirmation from manager saying that it can play 
             reply, serverIP, serverPort = receiveMsg()
             if reply == "SUCCESSFUL":
+                print('inside if statement in start commandclient')
                 print(reply,"\n")
                 play()
             else: 
                 print(reply,"\n")
-                commandClient()
+                # commandClient()
+                return 'empty'
+
+        #     # play through the messages while in play 
+        #     # print("Outside of while: ", reply)
+        #     while reply != 'GAME OVER': 
+        #         # print("Inside while reply != 'GAME OVER' ")
+        #         print(reply)
+        #         reply,(serverIP,serverPort) = clientSocket.recvfrom(2040)
+        #         reply = reply.decode()
+            
+        #     # get out of the while loop once the server message says its game over 
+        #     if reply == 'GAME OVER':
+        #         # # reply = reply.decode()
+        #         # game = json.loads(reply)
+        #         # # print(game)
+        #         # print("PLAYERS: ")
+        #         # for name in game: 
+        #         #     if name != 'round' and name != 'stock' and name != 'discard' and name != 'dealer':
+        #         #         value = game.get(name)
+        #         #         # print(value)
+        #         #         ip = value[0]
+        #         #         port = value [1]
+        #         #         cards = value[2]
+        #         #         printCards = printPlayerCards(cards, 6)
+        #         #         print(name, ':')
+        #         #         print(printCards)
+        #         print(reply)
+        #     else:
+        #         print(reply)
+        #     commandClient()
+        # else: 
+        #     print('FAILURE. Command not correct.')
+        #     commandClient()
 
     if action == 'end':
         sendMsg(commandChoice, serverIP, serverPort)
@@ -249,14 +300,16 @@ def commandClient():
                 return 'SUCCESSFUL' 
             elif reply_de == 'FAILURE': 
                 print(reply_de, '. did not de-register\n')
-                reply = commandClient()
+                # commandClient()
+                return 'empty'
                 if reply == 'SUCCESSFUL':
                     return reply
             elif reply == '':
                 print('NO REPLY \n')
         else:
             print('FAILURE. Not de-registering your player.', '\n')
-            reply = commandClient()
+           # commandClient()
+            return 'empty'
             if reply == 'SUCCESSFUL':
                 return reply
             
@@ -279,13 +332,29 @@ def receiveMsg():
     return message, serverIP, serverPort
 
 
-setupServer() #set up
+setupServer() #set 
+printMenu() #prints once
 
 while True: 
-    message = commandClient() #get input command
-    if message == 'SUCCESSFUL':
-        print("Closing client socket.")
-        clientSocket.close()
-        break;
-    #print(message)
+    # clientSocket.setblocking(0)
+    clientSocket.settimeout(5) #wait for 5 seconds
+    try:
+        recvpack,(ip, port) = clientSocket.recvfrom(1024) #get recv from server
+    except error:
+        recvpack = None #grab an error of no recv
+    if recvpack == "game": #if there is recv, play the game
+        print("MAIN: going to play game ")
+        play()
+    else: #if no msg back
+        print("MAIN: getting response in commandClient")
+        response = commandClient() #go to the menu
+        if response == 'SUCCESSFUL': #only return we care about is successful so the client can gracefully close
+            print("Closing client socket.")
+            clientSocket.close()
+            break;
+        #print(message)
     
+    # clientSocket.setblocking(0)
+    # ready = select.select([clientSocket], [],[], 5)
+    # if ready[0]:
+    #     reply, (ip, port) = receiveMsg()
